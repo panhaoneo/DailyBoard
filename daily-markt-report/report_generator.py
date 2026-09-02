@@ -15,10 +15,22 @@ def _fmt(val, suffix="%", default="-"):
     return f"{val}{suffix}"
 
 
+def _get_period_val(period_stats, period, key, suffix="%", default="-"):
+    """从period_stats获取指定期间和字段的值"""
+    period_data = period_stats.get(period, {})
+    val = period_data.get(key)
+    if val is None:
+        return default
+    if isinstance(val, float):
+        return f"{val}{suffix}"
+    return f"{val}{suffix}"
+
+
 def generate_markdown(stats):
     """生成 Markdown 格式的市场报告（统一表格格式）"""
     date = stats["date"]
     stock = stats["stock"]
+    period_stats = stats.get("period_stats", {})
     stock_extremes = stats.get("stock_extremes", {})
     index_returns = stats["index_returns"]
 
@@ -31,22 +43,33 @@ def generate_markdown(stats):
     lines.append("| 名称 | 今年 | 本月 | 本周 | 当天 | BIAS25 |")
     lines.append("|------|------|------|------|------|--------|")
 
-    # A股统计行
-    lines.append(f"| A股总数量 | - | - | - | {stock.get('total', '-')} | - |")
-    lines.append(f"| A股上涨数量 | - | - | - | {stock.get('up_count', '-')} | - |")
-    lines.append(f"| A股下跌数量 | - | - | - | {stock.get('down_count', '-')} | - |")
-    lines.append(f"| A股零涨幅数量 | - | - | - | {stock.get('flat_count', '-')} | - |")
+    # A股统计行 - 使用period_stats填充今年/本月/本周
+    gp = lambda key: _get_period_val(period_stats, 'year', key, default="-")
+    mp = lambda key: _get_period_val(period_stats, 'month', key, default="-")
+    wp = lambda key: _get_period_val(period_stats, 'week', key, default="-")
+
+    lines.append(f"| A股总数量 | {gp('total')} | {mp('total')} | {wp('total')} | {stock.get('total', '-')} | - |")
+    lines.append(f"| A股上涨数量 | {gp('up_count')} | {mp('up_count')} | {wp('up_count')} | {stock.get('up_count', '-')} | - |")
+    lines.append(f"| A股下跌数量 | {gp('down_count')} | {mp('down_count')} | {wp('down_count')} | {stock.get('down_count', '-')} | - |")
+    lines.append(f"| A股零涨幅数量 | {gp('flat_count')} | {mp('flat_count')} | {wp('flat_count')} | {stock.get('flat_count', '-')} | - |")
 
     # 涨幅分布行
     dist = stock.get("distribution", {})
-    for name, val in dist.items():
-        lines.append(f"| {name} | - | - | - | {_fmt(val)} | - |")
+    year_dist = period_stats.get('year', {}).get('distribution', {})
+    month_dist = period_stats.get('month', {}).get('distribution', {})
+    week_dist = period_stats.get('week', {}).get('distribution', {})
+    for name in dist.keys():
+        yv = _fmt(year_dist.get(name), default="-")
+        mv = _fmt(month_dist.get(name), default="-")
+        wv = _fmt(week_dist.get(name), default="-")
+        dv = _fmt(dist.get(name))
+        lines.append(f"| {name} | {yv} | {mv} | {wv} | {dv} | - |")
 
     # 比例和平均行
-    lines.append(f"| A股上涨比例 | - | - | - | {_fmt(stock.get('up_ratio'))} | - |")
-    lines.append(f"| A股下跌比例 | - | - | - | {_fmt(stock.get('down_ratio'))} | - |")
-    lines.append(f"| A股算术平均涨幅 | - | - | - | {_fmt(stock.get('avg_change'))} | - |")
-    lines.append(f"| A股涨幅中位数 | - | - | - | {_fmt(stock.get('median_change'))} | - |")
+    lines.append(f"| A股上涨比例 | {gp('up_ratio')} | {mp('up_ratio')} | {wp('up_ratio')} | {_fmt(stock.get('up_ratio'))} | - |")
+    lines.append(f"| A股下跌比例 | {gp('down_ratio')} | {mp('down_ratio')} | {wp('down_ratio')} | {_fmt(stock.get('down_ratio'))} | - |")
+    lines.append(f"| A股算术平均涨幅 | {gp('avg_change')} | {mp('avg_change')} | {wp('avg_change')} | {_fmt(stock.get('avg_change'))} | - |")
+    lines.append(f"| A股涨幅中位数 | {gp('median_change')} | {mp('median_change')} | {wp('median_change')} | {_fmt(stock.get('median_change'))} | - |")
 
     # 指数行
     for name, data in index_returns.items():
@@ -144,6 +167,7 @@ def generate_html(stats):
     """生成 HTML 格式的市场报告（统一表格格式）"""
     date = stats["date"]
     stock = stats["stock"]
+    period_stats = stats.get("period_stats", {})
     stock_extremes = stats.get("stock_extremes", {})
     index_returns = stats["index_returns"]
 
@@ -161,26 +185,37 @@ def generate_html(stats):
     else:
         sentiment, s_color = "弱势下跌", "#2c3e50"
 
+    # 辅助函数：获取期间值
+    def gp(key): return _get_period_val(period_stats, 'year', key, default="-")
+    def mp(key): return _get_period_val(period_stats, 'month', key, default="-")
+    def wp(key): return _get_period_val(period_stats, 'week', key, default="-")
+
     # 构建统一表格行
     table_rows = ""
 
-    # A股统计行
-    table_rows += f'<tr><td style="text-align:left">A股总数量</td><td>-</td><td>-</td><td>-</td><td>{stock.get("total", "-")}</td><td>-</td></tr>'
-    table_rows += f'<tr><td style="text-align:left">A股上涨数量</td><td>-</td><td>-</td><td>-</td><td>{stock.get("up_count", "-")}</td><td>-</td></tr>'
-    table_rows += f'<tr><td style="text-align:left">A股下跌数量</td><td>-</td><td>-</td><td>-</td><td>{stock.get("down_count", "-")}</td><td>-</td></tr>'
-    table_rows += f'<tr><td style="text-align:left">A股零涨幅数量</td><td>-</td><td>-</td><td>-</td><td>{stock.get("flat_count", "-")}</td><td>-</td></tr>'
+    # A股统计行 - 使用period_stats填充
+    table_rows += f'<tr><td style="text-align:left">A股总数量</td><td>{gp("total")}</td><td>{mp("total")}</td><td>{wp("total")}</td><td>{stock.get("total", "-")}</td><td>-</td></tr>'
+    table_rows += f'<tr><td style="text-align:left">A股上涨数量</td><td>{gp("up_count")}</td><td>{mp("up_count")}</td><td>{wp("up_count")}</td><td>{stock.get("up_count", "-")}</td><td>-</td></tr>'
+    table_rows += f'<tr><td style="text-align:left">A股下跌数量</td><td>{gp("down_count")}</td><td>{mp("down_count")}</td><td>{wp("down_count")}</td><td>{stock.get("down_count", "-")}</td><td>-</td></tr>'
+    table_rows += f'<tr><td style="text-align:left">A股零涨幅数量</td><td>{gp("flat_count")}</td><td>{mp("flat_count")}</td><td>{wp("flat_count")}</td><td>{stock.get("flat_count", "-")}</td><td>-</td></tr>'
 
     # 涨幅分布行
     dist = stock.get("distribution", {})
+    year_dist = period_stats.get('year', {}).get('distribution', {})
+    month_dist = period_stats.get('month', {}).get('distribution', {})
+    week_dist = period_stats.get('week', {}).get('distribution', {})
     for name, val in dist.items():
-        table_rows += f'<tr><td style="text-align:left">{name}</td><td>-</td><td>-</td><td>-</td><td>{val}%</td><td>-</td></tr>'
+        yv = _fmt(year_dist.get(name), default="-")
+        mv = _fmt(month_dist.get(name), default="-")
+        wv = _fmt(week_dist.get(name), default="-")
+        table_rows += f'<tr><td style="text-align:left">{name}</td><td>{yv}</td><td>{mv}</td><td>{wv}</td><td>{val}%</td><td>-</td></tr>'
 
     # 比例和平均行
-    table_rows += f'<tr><td style="text-align:left">A股上涨比例</td><td>-</td><td>-</td><td>-</td><td>{stock.get("up_ratio", "-")}%</td><td>-</td></tr>'
-    table_rows += f'<tr><td style="text-align:left">A股下跌比例</td><td>-</td><td>-</td><td>-</td><td>{stock.get("down_ratio", "-")}%</td><td>-</td></tr>'
-    table_rows += f'<tr><td style="text-align:left">A股算术平均涨幅</td><td>-</td><td>-</td><td>-</td><td class="{"up" if avg_change > 0 else "down" if avg_change < 0 else "flat"}">{"+" if avg_change > 0 else ""}{stock.get("avg_change", "-")}%</td><td>-</td></tr>'
+    table_rows += f'<tr><td style="text-align:left">A股上涨比例</td><td>{gp("up_ratio")}</td><td>{mp("up_ratio")}</td><td>{wp("up_ratio")}</td><td>{stock.get("up_ratio", "-")}%</td><td>-</td></tr>'
+    table_rows += f'<tr><td style="text-align:left">A股下跌比例</td><td>{gp("down_ratio")}</td><td>{mp("down_ratio")}</td><td>{wp("down_ratio")}</td><td>{stock.get("down_ratio", "-")}%</td><td>-</td></tr>'
+    table_rows += f'<tr><td style="text-align:left">A股算术平均涨幅</td><td>{gp("avg_change")}</td><td>{mp("avg_change")}</td><td>{wp("avg_change")}</td><td class="{"up" if avg_change > 0 else "down" if avg_change < 0 else "flat"}">{"+" if avg_change > 0 else ""}{stock.get("avg_change", "-")}%</td><td>-</td></tr>'
     med = stock.get("median_change", 0)
-    table_rows += f'<tr><td style="text-align:left">A股涨幅中位数</td><td>-</td><td>-</td><td>-</td><td class="{"up" if med > 0 else "down" if med < 0 else "flat"}">{"+" if med > 0 else ""}{med}%</td><td>-</td></tr>'
+    table_rows += f'<tr><td style="text-align:left">A股涨幅中位数</td><td>{gp("median_change")}</td><td>{mp("median_change")}</td><td>{wp("median_change")}</td><td class="{"up" if med > 0 else "down" if med < 0 else "flat"}">{"+" if med > 0 else ""}{med}%</td><td>-</td></tr>'
 
     # 指数行
     for name, data in index_returns.items():

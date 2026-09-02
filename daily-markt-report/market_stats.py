@@ -188,6 +188,84 @@ def calc_index_period_returns(histories):
     return results
 
 
+def calc_stock_period_stats(stocks):
+    """
+    计算A股各期间（今年、本月、本周）的统计数据
+    使用每只股票的K线数据计算期间涨幅，然后汇总统计
+    返回: dict {
+        'year': {total, up_count, down_count, ...},
+        'month': {...},
+        'week': {...}
+    }
+    """
+    if not stocks:
+        return {'year': {}, 'month': {}, 'week': {}}
+
+    today = datetime.now().date()
+    year_start = datetime(today.year, 1, 1).date()
+    month_start = datetime(today.year, today.month, 1).date()
+    weekday = today.weekday()
+    week_start = today - timedelta(days=weekday)
+
+    period_changes = {'year': [], 'month': [], 'week': []}
+
+    for stock in stocks:
+        klines = stock.get('klines', [])
+        if not klines or len(klines) < 2:
+            continue
+
+        # K线按日期升序排列
+        def find_close_before(target_date):
+            result = None
+            for k in klines:
+                k_date = datetime.strptime(k["date"], "%Y-%m-%d").date()
+                if k_date <= target_date:
+                    result = k["close"]
+                else:
+                    break
+            return result
+
+        latest_close = klines[-1]["close"]
+
+        # 计算各期间涨幅
+        for period_name, start_date in [('year', year_start), ('month', month_start), ('week', week_start)]:
+            start_close = find_close_before(start_date)
+            if start_close and start_close > 0 and latest_close > 0:
+                change_pct = round((latest_close - start_close) / start_close * 100, 2)
+                period_changes[period_name].append(change_pct)
+
+    # 对每个期间计算统计数据
+    result = {}
+    for period_name, changes in period_changes.items():
+        if not changes:
+            result[period_name] = {}
+            continue
+
+        total = len(changes)
+        up_count = sum(1 for c in changes if c > 0)
+        down_count = sum(1 for c in changes if c < 0)
+        flat_count = sum(1 for c in changes if c == 0)
+        up_ratio = round(up_count / total * 100, 2) if total else 0
+        down_ratio = round(down_count / total * 100, 2) if total else 0
+        avg_change = round(statistics.mean(changes), 2)
+        median_change = round(statistics.median(changes), 2)
+        dist = calc_change_distribution(changes)
+
+        result[period_name] = {
+            'total': total,
+            'up_count': up_count,
+            'down_count': down_count,
+            'flat_count': flat_count,
+            'up_ratio': up_ratio,
+            'down_ratio': down_ratio,
+            'avg_change': avg_change,
+            'median_change': median_change,
+            'distribution': dist,
+        }
+
+    return result
+
+
 def calc_all_stats(market_data):
     """
     计算所有统计数据
@@ -200,6 +278,9 @@ def calc_all_stats(market_data):
     print("[统计] 计算A股统计数据...")
     stock_stats = calc_basic_stats(stocks)
 
+    print("[统计] 计算A股各期间统计数据...")
+    period_stats = calc_stock_period_stats(stocks)
+
     print("[统计] 计算创新高/新低股票...")
     stock_extremes = calc_stock_extremes(stocks)
 
@@ -208,6 +289,7 @@ def calc_all_stats(market_data):
 
     return {
         "stock": stock_stats,
+        "period_stats": period_stats,
         "stock_extremes": stock_extremes,
         "index_returns": index_returns,
         "date": datetime.now().strftime("%Y-%m-%d"),
