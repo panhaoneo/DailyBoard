@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(*)",
+      "Bash(mkdir:*)",
+      "Bash(cd /home/pan/DailyBoard/xwlb && npm install 2>&1)"
+    ]
+  }
+}

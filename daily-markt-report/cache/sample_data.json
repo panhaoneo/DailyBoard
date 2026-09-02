@@ -1,0 +1,33 @@
+{
+  "stocks": [
+    {"code": "sh600000", "name": "浦发银行", "price": 9.20, "change_pct": 1.12, "change_amt": 0.10, "volume": 844662, "amount": 765642, "high": 9.20, "low": 8.98, "open": 9.18, "pre_close": 8.98, "year_high": 9.20, "year_low": 7.50, "hist_high": 9.20, "hist_low": 4.50},
+    {"code": "sh601318", "name": "中国平安", "price": 55.79, "change_pct": 0.85, "change_amt": 0.47, "volume": 497940, "amount": 2776375, "high": 56.13, "low": 55.45, "open": 55.88, "pre_close": 55.32, "year_high": 56.13, "year_low": 42.00, "hist_high": 56.13, "hist_low": 20.00},
+    {"code": "sz000001", "name": "平安银行", "price": 10.56, "change_pct": -0.68, "change_amt": -0.08, "volume": 780355, "amount": 904577, "high": 11.72, "low": 10.56, "open": 11.70, "pre_close": 11.67, "year_high": 12.50, "year_low": 10.56, "hist_high": 15.00, "hist_low": 10.56},
+    {"code": "sh600519", "name": "贵州茅台", "price": 1695.00, "change_pct": 2.15, "change_amt": 35.50, "volume": 25680, "amount": 432580, "high": 1695.00, "low": 1650.00, "open": 1655.00, "pre_close": 1652.50, "year_high": 1695.00, "year_low": 1400.00, "hist_high": 1695.00, "hist_low": 200.00},
+    {"code": "sz300750", "name": "宁德时代", "price": 218.50, "change_pct": 3.25, "change_amt": 6.88, "volume": 156800, "amount": 342580, "high": 220.00, "low": 210.50, "open": 211.00, "pre_close": 211.62, "year_high": 220.00, "year_low": 180.00, "hist_high": 220.00, "hist_low": 50.00},
+    {"code": "sh600036", "name": "招商银行", "price": 38.55, "change_pct": 0.92, "change_amt": 0.35, "volume": 325600, "amount": 125480, "high": 38.80, "low": 38.10, "open": 38.20, "pre_close": 38.20, "year_high": 38.80, "year_low": 32.00, "hist_high": 38.80, "hist_low": 15.00},
+    {"code": "sz000858", "name": "五粮液", "price": 138.50, "change_pct": 1.85, "change_amt": 2.51, "volume": 98500, "amount": 136280, "high": 139.80, "low": 135.50, "open": 136.00, "pre_close": 135.99, "year_high": 139.80, "year_low": 115.00, "hist_high": 139.80, "hist_low": 20.00},
+    {"code": "sh601012", "name": "隆基绿能", "price": 22.10, "change_pct": -1.25, "change_amt": -0.28, "volume": 456800, "amount": 102150, "high": 22.80, "low": 22.10, "open": 22.63, "pre_close": 22.63, "year_high": 28.00, "year_low": 22.10, "hist_high": 60.00, "hist_low": 22.10},
+    {"code": "sz002594", "name": "比亚迪", "price": 270.00, "change_pct": 4.15, "change_amt": 10.70, "volume": 185600, "amount": 498250, "high": 270.00, "low": 256.80, "open": 257.80, "pre_close": 257.80, "year_high": 270.00, "year_low": 200.00, "hist_high": 270.00, "hist_low": 30.00},
+    {"code": "sh600900", "name": "长江电力", "price": 28.95, "change_pct": 0.35, "change_amt": 0.10, "volume": 256800, "amount": 74280, "high": 29.10, "low": 28.75, "open": 28.85, "pre_close": 28.85, "year_high": 29.10, "year_low": 24.00, "hist_high": 29.10, "hist_low": 10.00},
+    {"code": "bj430047", "name": "北交所测试股", "price": 10.00, "change_pct": 5.00, "change_amt": 0.50, "volume": 100000, "amount": 1000000, "high": 10.00, "low": 9.50, "open": 9.50, "pre_close": 9.50, "year_high": 10.00, "year_low": 8.00, "hist_high": 10.00, "hist_low": 5.00}
+  ],
+  "indices": [
+    {"code": "000001", "secid": "1.000001", "name": "上证指数", "price": 3912.52, "change_pct": 0.59, "sina_code": "sh000001"},
+    {"code": "000016", "secid": "1.000016", "name": "上证50", "price": 2923.41, "change_pct": 1.03, "sina_code": "sh000016"},
+    {"code": "000300", "secid": "1.000300", "name": "沪深300", "price": 4614.83, "change_pct": 0.85, "sina_code": "sh000300"},
+    {"code": "000905", "secid": "1.000905", "name": "中证500", "price": 7896.79, "change_pct": 0.77, "sina_code": "sh000905"},
+    {"code": "000852", "secid": "1.000852", "name": "中证1000", "price": 7684.89, "change_pct": 0.23, "sina_code": "sh000852"},
+    {"code": "000688", "secid": "1.000688", "name": "科创50", "price": 1677.02, "change_pct": 1.71, "sina_code": "sh000688"},
+    {"code": "399001", "secid": "0.399001", "name": "深证成指", "price": 13972.37, "change_pct": 0.69, "sina_code": "sz399001"},
+    {"code": "399006", "secid": "0.399006", "name": "创业板指", "price": 3446.87, "change_pct": 0.51, "sina_code": "sz399006"},
+    {"code": "000985", "secid": "1.000985", "name": "中证全指", "price": 5930.73, "change_pct": 0.65, "sina_code": "sh000985"},
+    {"code": "399303", "secid": "0.399303", "name": "国证2000", "price": 10012.96, "change_pct": 0.03, "sina_code": "sz399303"},
+    {"code": "399673", "secid": "0.399673", "name": "创业板50", "price": 3607.70, "change_pct": 0.69, "sina_code": "sz399673"}
+  ],
+  "histories": {
+    "上证指数": [{"date": "2025-09-01", "open": 3850.00, "close": 3865.00, "high": 3870.00, "low": 3845.00, "volume": 450000000}, {"date": "2026-01-02", "open": 3900.00, "close": 3920.00, "high": 3925.00, "low": 3895.00, "volume": 460000000}, {"date": "2026-08-01", "open": 3880.00, "close": 3890.00, "high": 3895.00, "low": 3875.00, "volume": 470000000}, {"date": "2026-08-25", "open": 3863.37, "close": 3889.44, "high": 3896.20, "low": 3850.86, "volume": 464117264}, {"date": "2026-08-26", "open": 3881.74, "close": 3912.52, "high": 3926.43, "low": 3881.74, "volume": 489553021}],
+    "沪深300": [{"date": "2025-09-01", "open": 4500.00, "close": 4520.00, "high": 4525.00, "low": 4495.00, "volume": 350000000}, {"date": "2026-01-02", "open": 4550.00, "close": 4580.00, "high": 4585.00, "low": 4545.00, "volume": 360000000}, {"date": "2026-08-01", "open": 4580.00, "close": 4600.00, "high": 4605.00, "low": 4575.00, "volume": 365000000}, {"date": "2026-08-25", "open": 4580.00, "close": 4605.00, "high": 4610.00, "low": 4575.00, "volume": 360000000}, {"date": "2026-08-26", "open": 4600.00, "close": 4614.83, "high": 4620.00, "low": 4595.00, "volume": 365000000}],
+    "深证成指": [{"date": "2025-09-01", "open": 13500.00, "close": 13550.00, "high": 13560.00, "low": 13490.00, "volume": 550000000}, {"date": "2026-01-02", "open": 13800.00, "close": 13850.00, "high": 13860.00, "low": 13790.00, "volume": 560000000}, {"date": "2026-08-01", "open": 13900.00, "close": 13940.00, "high": 13950.00, "low": 13890.00, "volume": 565000000}, {"date": "2026-08-25", "open": 13900.00, "close": 13950.00, "high": 13960.00, "low": 13890.00, "volume": 560000000}, {"date": "2026-08-26", "open": 13950.00, "close": 13972.37, "high": 13980.00, "low": 13940.00, "volume": 565000000}]
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "name": "xwlb-daily",
+  "version": "1.0.0",
+  "description": "每日新闻联播文字版抓取与展示",
+  "type": "module",
+  "scripts": {
+    "scrape": "node scraper/index.js",
+    "build": "node scraper/build-site.js"
+  },
+  "dependencies": {
+    "cheerio": "^1.0.0"
+  }
+}
