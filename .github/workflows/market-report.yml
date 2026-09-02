@@ -24,43 +24,27 @@ jobs:
         with:
           python-version: '3.11'
           cache: 'pip'
+          cache-dependency-path: daily-markt-report/requirements.txt
 
-      - run: pip install -r requirements.txt
+      - working-directory: daily-markt-report
+        run: pip install -r requirements.txt
 
       - name: Generate market report
+        working-directory: daily-markt-report
         run: python main.py
 
       - name: Build index page
+        working-directory: daily-markt-report
         run: python build_index.py
 
       - name: Commit output
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add output/ cache/
+          git add daily-markt-report/output/
           if git diff --cached --quiet; then
             echo "No changes to commit"
           else
-            git commit -m "chore: daily report $(date +%Y-%m-%d)"
+            git commit -m "chore: update market report $(date +%Y-%m-%d)"
             git push
           fi
-
-  deploy:
-    needs: generate
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: main
-
-      - uses: actions/configure-pages@v5
-
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: output
-
-      - id: deployment
-        uses: actions/deploy-pages@v4

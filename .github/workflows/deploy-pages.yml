@@ -1,0 +1,114 @@
+name: Deploy Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prepare docs directory
+        run: |
+          mkdir -p _site/xwlb _site/market
+          
+          # Copy xwlb docs if exists
+          if [ -d "xwlb/docs" ]; then
+            cp -r xwlb/docs/* _site/xwlb/
+          fi
+          
+          # Copy market report output if exists
+          if [ -d "daily-markt-report/output" ]; then
+            cp -r daily-markt-report/output/* _site/market/
+          fi
+          
+          # Generate root index
+          cat > _site/index.html << 'INDEXEOF'
+          <!DOCTYPE html>
+          <html lang="zh-CN">
+          <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>DailyBoard</title>
+              <style>
+                  * { margin: 0; padding: 0; box-sizing: border-box; }
+                  body {
+                      font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+                      background: #f0f2f5; color: #333; line-height: 1.6; padding: 40px 20px;
+                  }
+                  .container { max-width: 800px; margin: 0 auto; }
+                  .header {
+                      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+                      color: white; padding: 40px; border-radius: 12px; margin-bottom: 30px; text-align: center;
+                  }
+                  .header h1 { font-size: 32px; margin-bottom: 10px; }
+                  .header p { font-size: 16px; opacity: 0.8; }
+                  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+                  .card {
+                      background: white; border-radius: 12px; padding: 30px;
+                      box-shadow: 0 2px 8px rgba(0,0,0,0.06); transition: transform 0.2s;
+                  }
+                  .card:hover { transform: translateY(-4px); box-shadow: 0 4px 16px rgba(0,0,0,0.1); }
+                  .card h2 { font-size: 22px; margin-bottom: 12px; color: #1a1a2e; }
+                  .card p { color: #666; margin-bottom: 20px; font-size: 14px; }
+                  .card a {
+                      display: inline-block; background: #2980b9; color: white;
+                      padding: 10px 24px; border-radius: 6px; text-decoration: none; font-weight: 600;
+                  }
+                  .card a:hover { background: #3498db; }
+                  .footer { text-align: center; padding: 30px; color: #999; font-size: 12px; }
+              </style>
+          </head>
+          <body>
+          <div class="container">
+              <div class="header">
+                  <h1>DailyBoard</h1>
+                  <p>每日自动更新的数据看板</p>
+              </div>
+              <div class="cards">
+                  <div class="card">
+                      <h2>新闻联播文字版</h2>
+                      <p>每日自动抓取 CCTV 新闻联播文字版，以 Markdown 格式归档，支持按日期浏览。</p>
+                      <a href="xwlb/">进入查看</a>
+                  </div>
+                  <div class="card">
+                      <h2>A股市场日报</h2>
+                      <p>每个交易日收盘后自动生成 A 股市场统计报告，包含涨跌分布、指数表现、创新高/新低股票等。</p>
+                      <a href="market/">进入查看</a>
+                  </div>
+              </div>
+              <div class="footer">
+                  每日自动更新 | 数据来源：mrxwlb.com、新浪财经、腾讯财经
+              </div>
+          </div>
+          </body>
+          </html>
+          INDEXEOF
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
