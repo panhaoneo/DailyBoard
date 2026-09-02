@@ -20,6 +20,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Convert markdown to clean HTML
+        run: python convert_md_to_html.py
+
+      - name: Rebuild market index
+        working-directory: daily-markt-report
+        run: python build_index.py
+
       - name: Prepare docs directory
         run: |
           mkdir -p _site/xwlb _site/market
