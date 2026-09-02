@@ -197,15 +197,13 @@ def fetch_all_stock_yearly_data(stocks, cache=None):
     for stock in stocks:
         code = stock["code"]
         cached = cache.get(code)
-        if cached and cached.get("date") == today_str:
-            # 今天已更新，使用缓存
+        # 缓存有效条件：日期是今天 且 包含klines
+        if cached and cached.get("date") == today_str and cached.get("klines"):
             stock["year_high"] = cached["year_high"]
             stock["year_low"] = cached["year_low"]
-            # 从缓存恢复K线数据用于期间统计
-            if cached.get("klines"):
-                stock["klines"] = [
-                    {"date": d, "close": c} for d, c in cached["klines"].items()
-                ]
+            stock["klines"] = [
+                {"date": d, "close": c} for d, c in cached["klines"].items()
+            ]
             cached_codes.add(code)
         else:
             uncached_stocks.append(stock)
