@@ -24,6 +24,22 @@ def calc_change_distribution(changes):
     return result
 
 
+def calc_change_distribution_counts(changes):
+    """
+    计算涨幅区间分布（个数）
+    changes: list[float] 所有股票的涨跌幅
+    返回: dict {区间名: 个数}
+    """
+    if not changes:
+        return {name: 0 for name, _ in CHANGE_RANGES}
+
+    result = {}
+    for name, condition in CHANGE_RANGES:
+        count = sum(1 for c in changes if condition(c))
+        result[name] = count
+    return result
+
+
 def calc_basic_stats(stocks):
     """
     计算A股基本统计数据
@@ -46,6 +62,7 @@ def calc_basic_stats(stocks):
     median_change = round(statistics.median(changes), 2)
 
     dist = calc_change_distribution(changes)
+    dist_counts = calc_change_distribution_counts(changes)
 
     return {
         "total": total,
@@ -57,6 +74,7 @@ def calc_basic_stats(stocks):
         "avg_change": avg_change,
         "median_change": median_change,
         "distribution": dist,
+        "distribution_counts": dist_counts,
     }
 
 
@@ -250,6 +268,7 @@ def calc_stock_period_stats(stocks):
         avg_change = round(statistics.mean(changes), 2)
         median_change = round(statistics.median(changes), 2)
         dist = calc_change_distribution(changes)
+        dist_counts = calc_change_distribution_counts(changes)
 
         result[period_name] = {
             'total': total,
@@ -261,6 +280,7 @@ def calc_stock_period_stats(stocks):
             'avg_change': avg_change,
             'median_change': median_change,
             'distribution': dist,
+            'distribution_counts': dist_counts,
         }
 
     return result

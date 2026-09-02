@@ -53,16 +53,16 @@ def generate_markdown(stats):
     lines.append(f"| A股下跌数量 | {gp('down_count')} | {mp('down_count')} | {wp('down_count')} | {stock.get('down_count', '-')} | - |")
     lines.append(f"| A股零涨幅数量 | {gp('flat_count')} | {mp('flat_count')} | {wp('flat_count')} | {stock.get('flat_count', '-')} | - |")
 
-    # 涨幅分布行
-    dist = stock.get("distribution", {})
-    year_dist = period_stats.get('year', {}).get('distribution', {})
-    month_dist = period_stats.get('month', {}).get('distribution', {})
-    week_dist = period_stats.get('week', {}).get('distribution', {})
-    for name in dist.keys():
-        yv = _fmt(year_dist.get(name), default="-")
-        mv = _fmt(month_dist.get(name), default="-")
-        wv = _fmt(week_dist.get(name), default="-")
-        dv = _fmt(dist.get(name))
+    # 涨幅分布行 - 使用个数而非百分比
+    dist_counts = stock.get("distribution_counts", {})
+    year_dist_counts = period_stats.get('year', {}).get('distribution_counts', {})
+    month_dist_counts = period_stats.get('month', {}).get('distribution_counts', {})
+    week_dist_counts = period_stats.get('week', {}).get('distribution_counts', {})
+    for name in dist_counts.keys():
+        yv = year_dist_counts.get(name, "-")
+        mv = month_dist_counts.get(name, "-")
+        wv = week_dist_counts.get(name, "-")
+        dv = dist_counts.get(name, "-")
         lines.append(f"| {name} | {yv} | {mv} | {wv} | {dv} | - |")
 
     # 比例和平均行
@@ -199,16 +199,16 @@ def generate_html(stats):
     table_rows += f'<tr><td style="text-align:left">A股下跌数量</td><td>{gp("down_count")}</td><td>{mp("down_count")}</td><td>{wp("down_count")}</td><td>{stock.get("down_count", "-")}</td><td>-</td></tr>'
     table_rows += f'<tr><td style="text-align:left">A股零涨幅数量</td><td>{gp("flat_count")}</td><td>{mp("flat_count")}</td><td>{wp("flat_count")}</td><td>{stock.get("flat_count", "-")}</td><td>-</td></tr>'
 
-    # 涨幅分布行
-    dist = stock.get("distribution", {})
-    year_dist = period_stats.get('year', {}).get('distribution', {})
-    month_dist = period_stats.get('month', {}).get('distribution', {})
-    week_dist = period_stats.get('week', {}).get('distribution', {})
-    for name, val in dist.items():
-        yv = _fmt(year_dist.get(name), default="-")
-        mv = _fmt(month_dist.get(name), default="-")
-        wv = _fmt(week_dist.get(name), default="-")
-        table_rows += f'<tr><td style="text-align:left">{name}</td><td>{yv}</td><td>{mv}</td><td>{wv}</td><td>{val}%</td><td>-</td></tr>'
+    # 涨幅分布行 - 使用个数而非百分比
+    dist_counts = stock.get("distribution_counts", {})
+    year_dist_counts = period_stats.get('year', {}).get('distribution_counts', {})
+    month_dist_counts = period_stats.get('month', {}).get('distribution_counts', {})
+    week_dist_counts = period_stats.get('week', {}).get('distribution_counts', {})
+    for name, val in dist_counts.items():
+        yv = year_dist_counts.get(name, "-")
+        mv = month_dist_counts.get(name, "-")
+        wv = week_dist_counts.get(name, "-")
+        table_rows += f'<tr><td style="text-align:left">{name}</td><td>{yv}</td><td>{mv}</td><td>{wv}</td><td>{val}</td><td>-</td></tr>'
 
     # 比例和平均行
     table_rows += f'<tr><td style="text-align:left">A股上涨比例</td><td>{gp("up_ratio")}</td><td>{mp("up_ratio")}</td><td>{wp("up_ratio")}</td><td>{stock.get("up_ratio", "-")}%</td><td>-</td></tr>'
