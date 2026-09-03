@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>首页 - 新闻联播文字版</title>
+<style>
+  :root { --bg: #fff; --fg: #1a1a1a; --muted: #666; --border: #e5e5e5; --accent: #c0392b; --link: #2980b9; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #1a1a1a; --fg: #e5e5e5; --muted: #999; --border: #333; --accent: #e74c3c; --link: #5dade2; }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif; background: var(--bg); color: var(--fg); line-height: 1.8; max-width: 800px; margin: 0 auto; padding: 2rem 1.5rem; }
+  header { border-bottom: 3px solid var(--accent); padding-bottom: 1rem; margin-bottom: 2rem; }
+  header h1 { font-size: 1.5rem; }
+  header h1 a { color: var(--fg); text-decoration: none; }
+  header p { color: var(--muted); font-size: 0.9rem; margin-top: 0.3rem; }
+  h1 { font-size: 1.8rem; margin-bottom: 1rem; line-height: 1.3; }
+  h2 { font-size: 1.3rem; margin: 2rem 0 0.8rem; color: var(--accent); border-left: 4px solid var(--accent); padding-left: 0.8rem; }
+  h3 { font-size: 1.1rem; margin: 1.5rem 0 0.5rem; }
+  p { margin-bottom: 0.8rem; text-indent: 2em; }
+  blockquote { color: var(--muted); border-left: 3px solid var(--border); padding-left: 1rem; margin: 1rem 0; font-style: italic; }
+  blockquote a { color: var(--link); }
+  ul { margin: 0.5rem 0 1rem 2rem; }
+  li { margin-bottom: 0.3rem; }
+  a { color: var(--link); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .post-list { list-style: none; margin: 0; padding: 0; }
+  .post-list li { border-bottom: 1px solid var(--border); padding: 1rem 0; }
+  .post-list .date { color: var(--muted); font-size: 0.85rem; }
+  .post-list .title { font-size: 1.1rem; font-weight: 600; display: block; margin-top: 0.2rem; }
+  .post-list .preview { color: var(--muted); font-size: 0.9rem; margin-top: 0.3rem; }
+  footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--border); color: var(--muted); font-size: 0.8rem; text-align: center; }
+  nav.pagination { margin-top: 2rem; text-align: center; }
+  nav.pagination a { display: inline-block; padding: 0.5rem 1rem; border: 1px solid var(--border); border-radius: 4px; margin: 0 0.3rem; }
+</style>
+</head>
+<body>
+<header>
+  <h1><a href="">新闻联播文字版</a></h1>
+  <p>每日新闻联播文字版归档</p>
+</header>
+<main>
+<h2>2026年9月</h2>
+<ul class="post-list">
+<li>
+  <span class="date">2026-09-01</span>
+  <a class="title" href="2026-09-01.html">2026年09月01日 新闻联播文字版</a>
+  <div class="preview">**20260901今日新闻联播主要内容：** - 习近平出席上海合作组织成员国元首理事会第二十六次会议并发表重要讲话...</div>
+</li>
+</ul>
+
+</main>
+<footer>
+  数据来源：<a href="http://mrxwlb.com" target="_blank">每日新闻联播</a> | 每日自动抓取
+</footer>
+</body>
+</html>
