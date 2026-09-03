@@ -106,7 +106,9 @@ function buildIndex(posts) {
     byMonth[month].push(post);
   }
 
-  let html = '';
+  let html = `<div style="background:#f8f9fa;border-left:3px solid #c0392b;padding:12px 16px;margin-bottom:24px;font-size:0.95rem;color:#444;line-height:1.8;">
+从新闻角度出发，看政策在扶持什么，看产业在构建什么，看公司在蓬勃发展什么。
+</div>\n`;
   for (const [month, monthPosts] of Object.entries(byMonth)) {
     const [y, m] = month.split('-');
     html += `<h2>${y}年${parseInt(m)}月</h2>\n<ul class="post-list">\n`;

@@ -89,6 +89,12 @@ def build_index():
     </div>
 
     <div class="section">
+        <div style="background:#f8f9fa;border-left:3px solid #1a1a2e;padding:12px 16px;font-size:0.95rem;color:#444;line-height:1.8;">
+从专业角度出发，看财报、调研、交流、投研看什么行业集体处于景气上行区间，什么行业已至拐点，什么行业景气度爆满。
+        </div>
+    </div>
+
+    <div class="section">
         <h2>历史报告</h2>
         <div class="table-wrapper">
         <table>
