@@ -31,9 +31,13 @@ jobs:
         working-directory: daily-markt-report
         run: python build_index.py
 
+      - name: Build new-things site
+        working-directory: new-things
+        run: python build.py
+
       - name: Prepare docs directory
         run: |
-          mkdir -p _site/xwlb _site/market
+          mkdir -p _site/xwlb _site/market _site/new-things
           
           # Copy xwlb docs if exists
           if [ -d "xwlb/docs" ]; then
@@ -43,6 +47,11 @@ jobs:
           # Copy market report output if exists
           if [ -d "daily-markt-report/output" ]; then
             cp -r daily-markt-report/output/* _site/market/
+          fi
+          
+          # Copy new-things docs if exists
+          if [ -d "new-things/docs" ]; then
+            cp -r new-things/docs/* _site/new-things/
           fi
           
           # Generate root index
@@ -99,9 +108,14 @@ jobs:
                       <p>每个交易日收盘后自动生成 A 股市场统计报告，包含涨跌分布、指数表现、创新高/新低股票等。</p>
                       <a href="market/">进入查看</a>
                   </div>
+                  <div class="card">
+                      <h2>新事物看板</h2>
+                      <p>记录生活中发现的新业态、新产品，一旦发现，紧密跟踪。</p>
+                      <a href="new-things/">进入查看</a>
+                  </div>
               </div>
               <div class="footer">
-                  每日自动更新 | 数据来源：mrxwlb.com、新浪财经、腾讯财经
+                  持续更新 | 数据来源：mrxwlb.com、新浪财经、腾讯财经
               </div>
           </div>
           </body>
