@@ -5,6 +5,7 @@
 import statistics
 from datetime import datetime, timedelta
 from config import CHANGE_RANGES
+from profit_growth_stocks import extract_profit_growth_stocks
 
 
 def calc_change_distribution(changes):
@@ -78,16 +79,20 @@ def calc_basic_stats(stocks):
     }
 
 
-def calc_stock_extremes(stocks):
+def calc_stock_extremes(stocks, profit_growth_codes=None):
     """
     计算当天创年内新高/新低的股票列表
     排除北交所股票（代码以4或8开头，或以bj开头）
     使用当日最高/最低价与年内高低比较
+    profit_growth_codes: 中报利润增长股票代码集合
     返回: dict {
-        'year_high': [{code, name, price, change_pct, year_high}],
+        'year_high': [{code, name, price, change_pct, year_high, profit_growth}],
         'year_low': [{code, name, price, change_pct, year_low}]
     }
     """
+    if profit_growth_codes is None:
+        profit_growth_codes = extract_profit_growth_stocks()
+
     if not stocks:
         return {'year_high': [], 'year_low': []}
 
@@ -108,12 +113,14 @@ def calc_stock_extremes(stocks):
 
         # 判断是否创年内新高（当日最高价 >= 年内最高）
         if year_high > 0 and today_high >= year_high * 0.999:
+            is_profit_growth = s['code'] in profit_growth_codes
             year_high_stocks.append({
                 'code': s['code'],
                 'name': s['name'],
                 'price': s['price'],
                 'change_pct': s['change_pct'],
                 'year_high': year_high,
+                'profit_growth': is_profit_growth,
             })
 
         # 判断是否创年内新低（当日最低价 <= 年内最低）

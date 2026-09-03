@@ -94,11 +94,12 @@ def generate_markdown(stats):
     # 详细股票列表
     if year_high:
         lines.append(f"### 创年内新高 ({len(year_high)}只)\n")
-        lines.append("| 代码 | 名称 | 收盘价 | 涨跌幅 | 年内最高 |")
-        lines.append("|------|------|--------|--------|----------|")
+        lines.append("| 代码 | 名称 | 收盘价 | 涨跌幅 | 年内最高 | 利润增长 |")
+        lines.append("|------|------|--------|--------|----------|----------|")
         for s in year_high[:50]:
             chg = f"+{s['change_pct']}%" if s['change_pct'] > 0 else f"{s['change_pct']}%"
-            lines.append(f"| {s['code']} | {s['name']} | {s['price']} | {chg} | {s['year_high']} |")
+            profit_mark = "✓" if s.get('profit_growth') else ""
+            lines.append(f"| {s['code']} | {s['name']} | {s['price']} | {chg} | {s['year_high']} | {profit_mark} |")
         if len(year_high) > 50:
             lines.append(f"\n*...还有{len(year_high)-50}只*\n")
         lines.append("")
@@ -235,7 +236,7 @@ def generate_html(stats):
                     </tr>"""
 
     # 构建创新高/新低股票表格
-    def build_extreme_table(stock_list, value_key, value_label):
+    def build_extreme_table(stock_list, value_key, value_label, show_profit_growth=False):
         if not stock_list:
             return "<p style='color:#999;padding:10px 0'>今日无相关股票</p>"
         rows = ""
@@ -243,23 +244,28 @@ def generate_html(stats):
             chg = s['change_pct']
             chg_cls = "up" if chg > 0 else "down" if chg < 0 else "flat"
             chg_prefix = "+" if chg > 0 else ""
+            profit_cell = ""
+            if show_profit_growth:
+                profit_mark = "✓" if s.get('profit_growth') else ""
+                profit_cell = f"<td style='text-align:center'>{profit_mark}</td>"
             rows += f"""
                     <tr>
                         <td style="text-align:left">{s['code']}</td>
                         <td style="text-align:left">{s['name']}</td>
                         <td>{s['price']}</td>
                         <td class="{chg_cls}">{chg_prefix}{chg}%</td>
-                        <td>{s[value_key]}</td>
+                        <td>{s[value_key]}</td>{profit_cell}
                     </tr>"""
         more_info = f"<p style='color:#999;font-size:12px;margin-top:8px'>共 {len(stock_list)} 只</p>" if len(stock_list) > 100 else ""
+        profit_header = "<th style='text-align:center'>利润增长</th>" if show_profit_growth else ""
         return f"""
             <table>
-                <thead><tr><th style="text-align:left">代码</th><th style="text-align:left">名称</th><th>收盘价</th><th>涨跌幅</th><th>{value_label}</th></tr></thead>
+                <thead><tr><th style="text-align:left">代码</th><th style="text-align:left">名称</th><th>收盘价</th><th>涨跌幅</th><th>{value_label}</th>{profit_header}</tr></thead>
                 <tbody>{rows}
                 </tbody>
             </table>{more_info}"""
 
-    year_high_table = build_extreme_table(stock_extremes.get('year_high', []), 'year_high', '年内最高')
+    year_high_table = build_extreme_table(stock_extremes.get('year_high', []), 'year_high', '年内最高', show_profit_growth=True)
     year_low_table = build_extreme_table(stock_extremes.get('year_low', []), 'year_low', '年内最低')
     hist_high_table = build_extreme_table(stock_extremes.get('hist_high', []), 'hist_high', '年内最高')
     hist_low_table = build_extreme_table(stock_extremes.get('hist_low', []), 'hist_low', '年内最低')
