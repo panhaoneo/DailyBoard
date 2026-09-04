@@ -47,6 +47,87 @@ def _safe_float(val, default=None):
         return default
 
 
+def fetch_all_stocks_eastmoney():
+    """
+    使用东方财富API获取全部A股实时行情（含年初至今涨跌幅）
+    分页请求，每页100条，约53页，10-15秒完成
+    返回: list[dict] 每只股票包含 code, name, price, change_pct, high, low, open, pre_close, ytd_change_pct
+    """
+    print("[1/4] 获取A股实时行情（东方财富，含年初至今涨跌幅）...")
+
+    time.sleep(1)
+
+    session = requests.Session()
+    session.headers.update({
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Referer": "https://quote.eastmoney.com/",
+    })
+
+    all_stocks = []
+    page = 1
+
+    while True:
+        url = (
+            f"https://push2.eastmoney.com/api/qt/clist/get"
+            f"?pn={page}&pz=100&po=1&np=1&ut=bd1d9ddb04089700cf9c27f6f7426281"
+            f"&fltt=2&invt=2&dect=1&wbp2u=|0|0|0|web"
+            f"&fid=f3&fs=m:0+t:6+f:!2,m:0+t:80+f:!2,m:1+t:2+f:!2,m:1+t:23+f:!2"
+            f"&fields=f2,f3,f4,f12,f13,f14,f15,f16,f17,f18,f25"
+        )
+
+        diffs = None
+        for attempt in range(3):
+            try:
+                resp = session.get(url, timeout=20)
+                data = resp.json()
+                diffs = data.get("data", {}).get("diff", [])
+                break
+            except Exception as e:
+                if attempt < 2:
+                    time.sleep(3)
+                else:
+                    print(f"    [!] 第{page}页获取失败（重试3次）：{e}")
+
+        if not diffs:
+            break
+
+        for item in diffs:
+            price = _safe_float(item.get("f2"))
+            change_pct = _safe_float(item.get("f3"), 0)
+            high = _safe_float(item.get("f15"), 0)
+            low = _safe_float(item.get("f16"), 0)
+            open_price = _safe_float(item.get("f17"), 0)
+            pre_close = _safe_float(item.get("f18"), 0)
+            ytd_change = _safe_float(item.get("f25"))
+
+            if price is None or price <= 0:
+                continue
+
+            all_stocks.append({
+                "code": str(item.get("f12", "")),
+                "name": item.get("f14", ""),
+                "price": price,
+                "change_pct": change_pct,
+                "change_amt": _safe_float(item.get("f4"), 0),
+                "volume": 0,
+                "amount": 0,
+                "high": high,
+                "low": low,
+                "open": open_price,
+                "pre_close": pre_close,
+                "ytd_change_pct": ytd_change,
+            })
+
+        if len(diffs) < 100:
+            break
+
+        page += 1
+        time.sleep(0.2)
+
+    print(f"  共获取 {len(all_stocks)} 只 A 股\n")
+    return all_stocks
+
+
 def fetch_all_stocks_sina():
     """
     使用新浪财经API获取全部A股实时行情
@@ -397,8 +478,8 @@ def fetch_all_index_histories(days=250):
 
 def fetch_market_data():
     """一次性获取所有市场数据"""
-    stocks = fetch_all_stocks_sina()
-    stocks = fetch_all_stock_yearly_data(stocks)  # 获取今年日K线，计算年内最高/最低
+    stocks = fetch_all_stocks_eastmoney()
+    stocks = fetch_all_stock_yearly_data(stocks)  # 获取今年日K线，用于计算年内新低
     indices = fetch_index_quotes_tencent()
     histories = fetch_all_index_histories(days=250)
 

@@ -217,7 +217,8 @@ def calc_index_period_returns(histories):
 def calc_stock_period_stats(stocks):
     """
     计算A股各期间（今年、本月、本周）的统计数据
-    使用每只股票的K线数据计算期间涨幅，然后汇总统计
+    今年: 直接使用东方财富快照数据中的年初至今涨跌幅(ytd_change_pct)
+    本月/本周: 使用K线数据计算期间涨幅
     返回: dict {
         'year': {total, up_count, down_count, ...},
         'month': {...},
@@ -228,19 +229,27 @@ def calc_stock_period_stats(stocks):
         return {'year': {}, 'month': {}, 'week': {}}
 
     today = datetime.now().date()
-    year_start = datetime(today.year, 1, 1).date()
     month_start = datetime(today.year, today.month, 1).date()
     weekday = today.weekday()
     week_start = today - timedelta(days=weekday)
 
-    period_changes = {'year': [], 'month': [], 'week': []}
+    # 今年: 直接使用ytd_change_pct（来自东方财富快照）
+    year_changes = []
+    for stock in stocks:
+        ytd = stock.get('ytd_change_pct')
+        if ytd is not None:
+            year_changes.append(ytd)
+
+    # 本月/本周: 使用K线数据计算
+    period_changes = {'month': [], 'week': []}
 
     for stock in stocks:
         klines = stock.get('klines', [])
         if not klines or len(klines) < 2:
             continue
 
-        # K线按日期升序排列
+        latest_close = klines[-1]["close"]
+
         def find_close_before(target_date):
             result = None
             for k in klines:
@@ -251,10 +260,7 @@ def calc_stock_period_stats(stocks):
                     break
             return result
 
-        latest_close = klines[-1]["close"]
-
-        # 计算各期间涨幅
-        for period_name, start_date in [('year', year_start), ('month', month_start), ('week', week_start)]:
+        for period_name, start_date in [('month', month_start), ('week', week_start)]:
             start_close = find_close_before(start_date)
             if start_close and start_close > 0 and latest_close > 0:
                 change_pct = round((latest_close - start_close) / start_close * 100, 2)
@@ -262,6 +268,35 @@ def calc_stock_period_stats(stocks):
 
     # 对每个期间计算统计数据
     result = {}
+
+    # 今年
+    if year_changes:
+        total = len(year_changes)
+        up_count = sum(1 for c in year_changes if c > 0)
+        down_count = sum(1 for c in year_changes if c < 0)
+        flat_count = sum(1 for c in year_changes if c == 0)
+        up_ratio = round(up_count / total * 100, 2) if total else 0
+        down_ratio = round(down_count / total * 100, 2) if total else 0
+        avg_change = round(statistics.mean(year_changes), 2)
+        median_change = round(statistics.median(year_changes), 2)
+        dist = calc_change_distribution(year_changes)
+        dist_counts = calc_change_distribution_counts(year_changes)
+        result['year'] = {
+            'total': total,
+            'up_count': up_count,
+            'down_count': down_count,
+            'flat_count': flat_count,
+            'up_ratio': up_ratio,
+            'down_ratio': down_ratio,
+            'avg_change': avg_change,
+            'median_change': median_change,
+            'distribution': dist,
+            'distribution_counts': dist_counts,
+        }
+    else:
+        result['year'] = {}
+
+    # 本月/本周
     for period_name, changes in period_changes.items():
         if not changes:
             result[period_name] = {}
