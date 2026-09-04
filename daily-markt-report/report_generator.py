@@ -44,14 +44,17 @@ def generate_markdown(stats):
     lines.append("|------|------|------|------|------|--------|")
 
     # A股统计行 - 使用period_stats填充今年/本月/本周
+    gp_count = lambda key: _get_period_val(period_stats, 'year', key, suffix="", default="-")
+    mp_count = lambda key: _get_period_val(period_stats, 'month', key, suffix="", default="-")
+    wp_count = lambda key: _get_period_val(period_stats, 'week', key, suffix="", default="-")
     gp = lambda key: _get_period_val(period_stats, 'year', key, default="-")
     mp = lambda key: _get_period_val(period_stats, 'month', key, default="-")
     wp = lambda key: _get_period_val(period_stats, 'week', key, default="-")
 
-    lines.append(f"| A股总数量 | {gp('total')} | {mp('total')} | {wp('total')} | {stock.get('total', '-')} | - |")
-    lines.append(f"| A股上涨数量 | {gp('up_count')} | {mp('up_count')} | {wp('up_count')} | {stock.get('up_count', '-')} | - |")
-    lines.append(f"| A股下跌数量 | {gp('down_count')} | {mp('down_count')} | {wp('down_count')} | {stock.get('down_count', '-')} | - |")
-    lines.append(f"| A股零涨幅数量 | {gp('flat_count')} | {mp('flat_count')} | {wp('flat_count')} | {stock.get('flat_count', '-')} | - |")
+    lines.append(f"| A股总数量 | {gp_count('total')} | {mp_count('total')} | {wp_count('total')} | {stock.get('total', '-')} | - |")
+    lines.append(f"| A股上涨数量 | {gp_count('up_count')} | {mp_count('up_count')} | {wp_count('up_count')} | {stock.get('up_count', '-')} | - |")
+    lines.append(f"| A股下跌数量 | {gp_count('down_count')} | {mp_count('down_count')} | {wp_count('down_count')} | {stock.get('down_count', '-')} | - |")
+    lines.append(f"| A股零涨幅数量 | {gp_count('flat_count')} | {mp_count('flat_count')} | {wp_count('flat_count')} | {stock.get('flat_count', '-')} | - |")
 
     # 涨幅分布行 - 使用个数而非百分比
     dist_counts = stock.get("distribution_counts", {})

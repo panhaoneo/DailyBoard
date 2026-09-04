@@ -3,7 +3,13 @@
     "allow": [
       "WebFetch(*)",
       "Bash(mkdir:*)",
-      "Bash(cd /home/pan/DailyBoard/xwlb && npm install 2>&1)"
+      "Bash(cd /home/pan/DailyBoard/xwlb && npm install 2>&1)",
+      "Bash(cd /home/pan/DailyBoard && git diff --stat)",
+      "Bash(cd /home/pan/DailyBoard && git log --oneline -5)",
+      "Bash(git status:*)",
+      "Bash(head -20 /home/pan/DailyBoard/daily-markt-report/cache/yearly_extremes.json | grep -A 5 \"klines\")",
+      "Bash(cd /home/pan/DailyBoard/new-things && python build.py)",
+      "Bash(cd /home/pan/DailyBoard && git add new-things/ .github/workflows/deploy-pages.yml && git status)"
     ]
   }
 }
