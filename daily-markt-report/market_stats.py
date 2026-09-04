@@ -6,6 +6,7 @@ import statistics
 from datetime import datetime, timedelta
 from config import CHANGE_RANGES
 from profit_growth_stocks import extract_profit_growth_stocks
+from ths_fetcher import fetch_ths_extremes
 
 
 def calc_change_distribution(changes):
@@ -308,8 +309,27 @@ def calc_all_stats(market_data):
     print("[统计] 计算A股各期间统计数据...")
     period_stats = calc_stock_period_stats(stocks)
 
-    print("[统计] 计算创新高/新低股票...")
-    stock_extremes = calc_stock_extremes(stocks)
+    print("[统计] 获取同花顺创新高数据...")
+    ths_extremes = fetch_ths_extremes()
+
+    print("[统计] 计算年内新低股票（K线方式）...")
+    # 使用K线计算year_low（THS没有新低API）
+    kline_extremes = calc_stock_extremes(stocks)
+
+    # 合并THS数据和K线数据
+    profit_growth_codes = extract_profit_growth_stocks()
+
+    # 为THS的year_high添加profit_growth标记
+    year_high = ths_extremes.get("year_high", [])
+    for s in year_high:
+        s["profit_growth"] = s["code"] in profit_growth_codes
+
+    stock_extremes = {
+        "year_high": year_high,
+        "hist_high": ths_extremes.get("hist_high", []),
+        "year_low": kline_extremes.get("year_low", []),
+        "hist_low": [],  # THS没有历史新低API
+    }
 
     print("[统计] 计算指数期间涨幅和BIAS25...")
     index_returns = calc_index_period_returns(histories)

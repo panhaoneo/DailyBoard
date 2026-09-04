@@ -3,6 +3,9 @@ name: Deploy Pages
 on:
   push:
     branches: [main]
+  workflow_run:
+    workflows: ["Daily Market Report", "Daily XWLB Scrape"]
+    types: [completed]
   workflow_dispatch:
 
 permissions:
