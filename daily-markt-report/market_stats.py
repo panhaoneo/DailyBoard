@@ -347,23 +347,46 @@ def calc_all_stats(market_data):
     print("[统计] 获取同花顺创新高数据...")
     ths_extremes = fetch_ths_extremes()
 
-    print("[统计] 计算年内新低股票（K线方式）...")
-    # 使用K线计算year_low（THS没有新低API）
-    kline_extremes = calc_stock_extremes(stocks)
-
-    # 合并THS数据和K线数据
+    # 合并THS数据和利润增长数据
     profit_growth_codes = extract_profit_growth_stocks()
 
-    # 为THS的year_high添加profit_growth标记
+    # 构建代码到行业的映射
+    code_to_industry = {}
+    for s in stocks:
+        code = s.get("code", "")
+        industry = s.get("industry", "")
+        if code and industry:
+            code_to_industry[code] = industry
+
+    # 为THS的year_high添加profit_growth标记和行业信息
     year_high = ths_extremes.get("year_high", [])
+    today_str = datetime.now().strftime("%Y-%m-%d")
+    today_new_high = []
     for s in year_high:
         s["profit_growth"] = s["code"] in profit_growth_codes
+        s["industry"] = code_to_industry.get(s["code"], "")
+        if s.get("high_date") == today_str:
+            today_new_high.append(s)
+
+    # 按行业排序
+    year_high.sort(key=lambda x: x.get("industry", "") or "zzz")
+
+    # 计算两市总成交额
+    total_turnover = sum(s.get("amount", 0) for s in stocks)
+
+    # 按行业统计今日创新高的股票
+    sector_summary = {}
+    for s in today_new_high:
+        ind = s.get("industry", "未知")
+        if not ind:
+            ind = "未知"
+        if ind not in sector_summary:
+            sector_summary[ind] = []
+        sector_summary[ind].append(s["name"])
 
     stock_extremes = {
         "year_high": year_high,
         "hist_high": ths_extremes.get("hist_high", []),
-        "year_low": kline_extremes.get("year_low", []),
-        "hist_low": [],  # THS没有历史新低API
     }
 
     print("[统计] 计算指数期间涨幅和BIAS25...")
@@ -374,5 +397,8 @@ def calc_all_stats(market_data):
         "period_stats": period_stats,
         "stock_extremes": stock_extremes,
         "index_returns": index_returns,
+        "total_turnover": total_turnover,
+        "today_new_high": today_new_high,
+        "sector_summary": sector_summary,
         "date": datetime.now().strftime("%Y-%m-%d"),
     }

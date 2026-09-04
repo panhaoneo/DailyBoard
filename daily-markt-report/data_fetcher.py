@@ -72,7 +72,7 @@ def fetch_all_stocks_eastmoney():
             f"?pn={page}&pz=100&po=1&np=1&ut=bd1d9ddb04089700cf9c27f6f7426281"
             f"&fltt=2&invt=2&dect=1&wbp2u=|0|0|0|web"
             f"&fid=f3&fs=m:0+t:6+f:!2,m:0+t:80+f:!2,m:1+t:2+f:!2,m:1+t:23+f:!2"
-            f"&fields=f2,f3,f4,f12,f13,f14,f15,f16,f17,f18,f25"
+            f"&fields=f2,f3,f4,f6,f12,f13,f14,f15,f16,f17,f18,f25,f100"
         )
 
         diffs = None
@@ -110,12 +110,13 @@ def fetch_all_stocks_eastmoney():
                 "change_pct": change_pct,
                 "change_amt": _safe_float(item.get("f4"), 0),
                 "volume": 0,
-                "amount": 0,
+                "amount": _safe_float(item.get("f6"), 0),
                 "high": high,
                 "low": low,
                 "open": open_price,
                 "pre_close": pre_close,
                 "ytd_change_pct": ytd_change,
+                "industry": item.get("f100", ""),
             })
 
         if len(diffs) < 100:

@@ -85,38 +85,37 @@ def generate_markdown(stats):
 
     lines.append("")
 
-    # 创新高/新低股票统计
+    # 创新高股票统计
     year_high = stock_extremes.get('year_high', [])
-    year_low = stock_extremes.get('year_low', [])
+    today_new_high = stats.get('today_new_high', [])
+    sector_summary = stats.get('sector_summary', {})
 
-    lines.append("## 创年内新高/新低股票（沪交所+深交所，排除北交所）\n")
+    lines.append("## 创年内新高股票（沪交所+深交所，排除北交所）\n")
     lines.append(f"- 创年内新高: **{len(year_high)}只**")
-    lines.append(f"- 创年内新低: **{len(year_low)}只**")
+    lines.append(f"- 当日创新高: **{len(today_new_high)}只**")
     lines.append("")
 
     # 详细股票列表
     if year_high:
         lines.append(f"### 创年内新高 ({len(year_high)}只)\n")
-        lines.append("| 代码 | 名称 | 收盘价 | 涨跌幅 | 年内最高 | 高点日期 | 利润增长 |")
-        lines.append("|------|------|--------|--------|----------|----------|----------|")
+        lines.append("| 代码 | 名称 | 所属行业 | 收盘价 | 涨跌幅 | 年内最高 | 高点日期 | 利润增长 |")
+        lines.append("|------|------|----------|--------|--------|----------|----------|----------|")
         for s in year_high[:50]:
             chg = f"+{s['change_pct']}%" if s['change_pct'] > 0 else f"{s['change_pct']}%"
             high_date = s.get('high_date', '')
             profit_mark = "✓" if s.get('profit_growth') else ""
-            lines.append(f"| {s['code']} | {s['name']} | {s['price']} | {chg} | {s['year_high']} | {high_date} | {profit_mark} |")
+            industry = s.get('industry', '')
+            lines.append(f"| {s['code']} | {s['name']} | {industry} | {s['price']} | {chg} | {s['year_high']} | {high_date} | {profit_mark} |")
         if len(year_high) > 50:
             lines.append(f"\n*...还有{len(year_high)-50}只*\n")
         lines.append("")
 
-    if year_low:
-        lines.append(f"### 创年内新低 ({len(year_low)}只)\n")
-        lines.append("| 代码 | 名称 | 收盘价 | 涨跌幅 | 年内最低 |")
-        lines.append("|------|------|--------|--------|----------|")
-        for s in year_low[:50]:
-            chg = f"+{s['change_pct']}%" if s['change_pct'] > 0 else f"{s['change_pct']}%"
-            lines.append(f"| {s['code']} | {s['name']} | {s['price']} | {chg} | {s['year_low']} |")
-        if len(year_low) > 50:
-            lines.append(f"\n*...还有{len(year_low)-50}只*\n")
+    # 当日创新高板块分类总结
+    if sector_summary:
+        lines.append("### 当日创新高板块分布\n")
+        sorted_sectors = sorted(sector_summary.items(), key=lambda x: len(x[1]), reverse=True)
+        for sector, names in sorted_sectors:
+            lines.append(f"- **{sector}** ({len(names)}只): {', '.join(names)}")
         lines.append("")
 
     # 市场情绪总结
@@ -124,6 +123,7 @@ def generate_markdown(stats):
     up_ratio = stock.get("up_ratio", 0)
     avg_change = stock.get("avg_change", 0)
     median_change = stock.get("median_change", 0)
+    total_turnover = stats.get("total_turnover", 0)
 
     if up_ratio >= 70:
         sentiment = "强势上涨"
@@ -136,7 +136,16 @@ def generate_markdown(stats):
     else:
         sentiment = "弱势下跌"
 
+    # 格式化成交额（亿元）
+    if total_turnover >= 1e8:
+        turnover_str = f"{total_turnover / 1e8:.2f}亿"
+    elif total_turnover >= 1e4:
+        turnover_str = f"{total_turnover / 1e4:.2f}万"
+    else:
+        turnover_str = f"{total_turnover:.0f}"
+
     lines.append(f"- **市场情绪**: {sentiment}")
+    lines.append(f"- **两市总成交额**: {turnover_str}")
     lines.append(f"- **上涨比例**: {up_ratio}%")
     lines.append(f"- **平均涨幅**: {avg_change}%")
     lines.append(f"- **中位数涨幅**: {median_change}%")
@@ -153,8 +162,7 @@ def generate_markdown(stats):
     lines.append("")
     lines.append("---")
     lines.append(f"*报告生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}*")
-    lines.append("*数据来源: 新浪财经、腾讯财经（免费公开数据）*")
-    lines.append("*注: 年内高低使用今年以来的日K线数据计算*")
+    lines.append("*数据来源: 东方财富、腾讯财经（免费公开数据）*")
 
     return "\n".join(lines)
 
@@ -239,8 +247,8 @@ def generate_html(stats):
                         {_html_cell(bias)}
                     </tr>"""
 
-    # 构建创新高/新低股票表格
-    def build_extreme_table(stock_list, value_key, value_label, show_profit_growth=False, show_date=False):
+    # 构建创新高股票表格
+    def build_year_high_table(stock_list):
         if not stock_list:
             return "<p style='color:#999;padding:10px 0'>今日无相关股票</p>"
         rows = ""
@@ -248,41 +256,82 @@ def generate_html(stats):
             chg = s['change_pct']
             chg_cls = "up" if chg > 0 else "down" if chg < 0 else "flat"
             chg_prefix = "+" if chg > 0 else ""
-            date_cell = ""
-            if show_date:
-                date_val = s.get('high_date', s.get('hist_high_date', ''))
-                date_cell = f"<td>{date_val}</td>"
-            profit_cell = ""
-            if show_profit_growth:
-                profit_mark = "✓" if s.get('profit_growth') else ""
-                profit_cell = f"<td style='text-align:center'>{profit_mark}</td>"
+            date_val = s.get('high_date', '')
+            profit_mark = "✓" if s.get('profit_growth') else ""
+            industry = s.get('industry', '')
             rows += f"""
+                    <tr>
+                        <td style="text-align:left">{s['code']}</td>
+                        <td style="text-align:left">{s['name']}</td>
+                        <td>{industry}</td>
+                        <td>{s['price']}</td>
+                        <td class="{chg_cls}">{chg_prefix}{chg}%</td>
+                        <td>{s['year_high']}</td>
+                        <td>{date_val}</td>
+                        <td style='text-align:center'>{profit_mark}</td>
+                    </tr>"""
+        more_info = f"<p style='color:#999;font-size:12px;margin-top:8px'>共 {len(stock_list)} 只</p>" if len(stock_list) > 100 else ""
+        return f"""
+            <table>
+                <thead><tr><th style="text-align:left">代码</th><th style="text-align:left">名称</th><th>所属行业</th><th>收盘价</th><th>涨跌幅</th><th>年内最高</th><th>高点日期</th><th style='text-align:center'>利润增长</th></tr></thead>
+                <tbody>{rows}
+                </tbody>
+            </table>{more_info}"""
+
+    year_high_table = build_year_high_table(stock_extremes.get('year_high', []))
+    hist_high_table = build_year_high_table(stock_extremes.get('hist_high', [])) if False else "<p style='color:#999;padding:10px 0'>今日无相关股票</p>"
+
+    # 构建历史新高表格（不含行业列）
+    hist_high_list = stock_extremes.get('hist_high', [])
+    if hist_high_list:
+        hist_rows = ""
+        for s in hist_high_list[:100]:
+            chg = s['change_pct']
+            chg_cls = "up" if chg > 0 else "down" if chg < 0 else "flat"
+            chg_prefix = "+" if chg > 0 else ""
+            date_val = s.get('hist_high_date', '')
+            hist_rows += f"""
                     <tr>
                         <td style="text-align:left">{s['code']}</td>
                         <td style="text-align:left">{s['name']}</td>
                         <td>{s['price']}</td>
                         <td class="{chg_cls}">{chg_prefix}{chg}%</td>
-                        <td>{s[value_key]}</td>{date_cell}{profit_cell}
+                        <td>{s['hist_high']}</td>
+                        <td>{date_val}</td>
                     </tr>"""
-        more_info = f"<p style='color:#999;font-size:12px;margin-top:8px'>共 {len(stock_list)} 只</p>" if len(stock_list) > 100 else ""
-        date_header = "<th>高点日期</th>" if show_date else ""
-        profit_header = "<th style='text-align:center'>利润增长</th>" if show_profit_growth else ""
-        return f"""
+        hist_high_table = f"""
             <table>
-                <thead><tr><th style="text-align:left">代码</th><th style="text-align:left">名称</th><th>收盘价</th><th>涨跌幅</th><th>{value_label}</th>{date_header}{profit_header}</tr></thead>
-                <tbody>{rows}
+                <thead><tr><th style="text-align:left">代码</th><th style="text-align:left">名称</th><th>收盘价</th><th>涨跌幅</th><th>历史最高</th><th>高点日期</th></tr></thead>
+                <tbody>{hist_rows}
                 </tbody>
-            </table>{more_info}"""
-
-    year_high_table = build_extreme_table(stock_extremes.get('year_high', []), 'year_high', '年内最高', show_profit_growth=True, show_date=True)
-    year_low_table = build_extreme_table(stock_extremes.get('year_low', []), 'year_low', '年内最低')
-    hist_high_table = build_extreme_table(stock_extremes.get('hist_high', []), 'hist_high', '年内最高', show_date=True)
-    hist_low_table = build_extreme_table(stock_extremes.get('hist_low', []), 'hist_low', '年内最低')
+            </table>"""
 
     year_high_count = len(stock_extremes.get('year_high', []))
-    year_low_count = len(stock_extremes.get('year_low', []))
     hist_high_count = len(stock_extremes.get('hist_high', []))
-    hist_low_count = len(stock_extremes.get('hist_low', []))
+    today_new_high_count = len(stats.get('today_new_high', []))
+    sector_summary = stats.get('sector_summary', {})
+    total_turnover = stats.get('total_turnover', 0)
+
+    # 格式化成交额
+    if total_turnover >= 1e8:
+        turnover_str = f"{total_turnover / 1e8:.2f}亿"
+    elif total_turnover >= 1e4:
+        turnover_str = f"{total_turnover / 1e4:.2f}万"
+    else:
+        turnover_str = f"{total_turnover:.0f}"
+
+    # 板块分布HTML
+    sector_html = ""
+    if sector_summary:
+        sorted_sectors = sorted(sector_summary.items(), key=lambda x: len(x[1]), reverse=True)
+        sector_items = ""
+        for sector, names in sorted_sectors:
+            sector_items += f'<li><strong>{sector}</strong> ({len(names)}只): {", ".join(names)}</li>'
+        sector_html = f"""
+        <div style="margin-top:16px;padding:16px;background:#f8f9fb;border-radius:8px">
+            <h4 style="font-size:14px;color:#333;margin-bottom:10px">当日创新高板块分布</h4>
+            <ul style="list-style:none;padding:0;margin:0">{sector_items}</ul>
+        </div>"""
 
     html = f"""<!DOCTYPE html>
 <html lang="zh-CN">
@@ -361,44 +410,36 @@ def generate_html(stats):
     </div>
 
     <div class="section">
-        <h2>创新高/新低股票（沪交所+深交所，排除北交所）</h2>
+        <h2>创新高股票（沪交所+深交所，排除北交所）</h2>
         <div class="stat-grid">
             <div class="stat-card">
                 <div class="label">创年内新高</div>
                 <div class="value up">{year_high_count}只</div>
             </div>
             <div class="stat-card">
-                <div class="label">创年内新低</div>
-                <div class="value down">{year_low_count}只</div>
+                <div class="label">当日创新高</div>
+                <div class="value up">{today_new_high_count}只</div>
             </div>
             <div class="stat-card">
                 <div class="label">创历史新高</div>
                 <div class="value up">{hist_high_count}只</div>
             </div>
-            <div class="stat-card">
-                <div class="label">创历史新低</div>
-                <div class="value down">{hist_low_count}只</div>
-            </div>
         </div>
 
         <h3 style="font-size:16px;color:#333;margin:20px 0 10px">📈 创年内新高</h3>
         {year_high_table}
-
-        <h3 style="font-size:16px;color:#333;margin:20px 0 10px">📉 创年内新低</h3>
-        {year_low_table}
+        {sector_html}
 
         <h3 style="font-size:16px;color:#333;margin:20px 0 10px">🏆 创历史新高</h3>
         {hist_high_table}
-
-        <h3 style="font-size:16px;color:#333;margin:20px 0 10px">⚠️ 创历史新低</h3>
-        {hist_low_table}
     </div>
 
     <div class="section">
         <h2>市场情绪总结</h2>
         <div style="padding:10px 0">
             <p><strong>市场情绪:</strong> <span class="tag" style="background:{s_color}">{sentiment}</span></p>
-            <p style="margin-top:10px"><strong>上涨比例:</strong> {up_ratio}%</p>
+            <p style="margin-top:10px"><strong>两市总成交额:</strong> {turnover_str}</p>
+            <p><strong>上涨比例:</strong> {up_ratio}%</p>
             <p><strong>平均涨幅:</strong> <span class="{"up" if avg_change > 0 else "down" if avg_change < 0 else "flat"}">{"+" if avg_change > 0 else ""}{avg_change}%</span></p>
             <p><strong>中位数涨幅:</strong> <span class="{"up" if med > 0 else "down" if med < 0 else "flat"}">{"+" if med > 0 else ""}{med}%</span></p>
         </div>
@@ -406,8 +447,7 @@ def generate_html(stats):
 
     <div class="footer">
         报告生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}<br>
-        数据来源: 新浪财经、腾讯财经（免费公开数据）<br>
-        注: 年内高低使用今年以来的日K线数据计算
+        数据来源: 东方财富、腾讯财经（免费公开数据）
     </div>
 </div>
 </body>
