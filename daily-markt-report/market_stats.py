@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from config import CHANGE_RANGES
 from profit_growth_stocks import extract_profit_growth_stocks
 from ths_fetcher import fetch_ths_extremes
+from iwencai_fetcher import fetch_iwencai_hist_high
 
 
 def calc_change_distribution(changes):
@@ -229,6 +230,7 @@ def calc_stock_period_stats(stocks):
         return {'year': {}, 'month': {}, 'week': {}}
 
     today = datetime.now().date()
+    year_start = datetime(today.year, 1, 1).date()
     month_start = datetime(today.year, today.month, 1).date()
     weekday = today.weekday()
     week_start = today - timedelta(days=weekday)
@@ -239,6 +241,8 @@ def calc_stock_period_stats(stocks):
         ytd = stock.get('ytd_change_pct')
         if ytd is not None:
             year_changes.append(ytd)
+    # 缺少ytd的股票（如回退新浪数据源）用K线补算
+    kline_year_needed = any(s.get('ytd_change_pct') is None for s in stocks)
 
     # 本月/本周: 使用K线数据计算
     period_changes = {'month': [], 'week': []}
@@ -259,6 +263,14 @@ def calc_stock_period_stats(stocks):
                 else:
                     break
             return result
+
+        if kline_year_needed and stock.get('ytd_change_pct') is None:
+            # K线只含当年数据时没有年初前收盘价，用年内首条K线收盘价作基准近似
+            year_start_close = find_close_before(year_start)
+            if year_start_close is None and klines:
+                year_start_close = klines[0]["close"]
+            if year_start_close and year_start_close > 0 and latest_close > 0:
+                year_changes.append(round((latest_close - year_start_close) / year_start_close * 100, 2))
 
         for period_name, start_date in [('month', month_start), ('week', week_start)]:
             start_close = find_close_before(start_date)
@@ -371,6 +383,21 @@ def calc_all_stats(market_data):
     # 按行业排序
     year_high.sort(key=lambda x: x.get("industry", "") or "zzz")
 
+    # 创历史新高: 优先问财（数据来源: 同花顺问财），失败回退同花顺AKShare
+    print("[统计] 获取创历史新高股票（问财优先）...")
+    iwencai_hist_high = fetch_iwencai_hist_high()
+    if iwencai_hist_high is not None:
+        hist_high = iwencai_hist_high
+    else:
+        print("[统计] 问财不可用，回退同花顺AKShare历史新高数据...")
+        hist_high = ths_extremes.get("hist_high", [])
+
+    for s in hist_high:
+        s["profit_growth"] = s["code"] in profit_growth_codes
+        s["industry"] = code_to_industry.get(s["code"], "")
+
+    hist_high.sort(key=lambda x: x.get("industry", "") or "zzz")
+
     # 计算两市总成交额
     total_turnover = sum(s.get("amount", 0) for s in stocks)
 
@@ -386,7 +413,7 @@ def calc_all_stats(market_data):
 
     stock_extremes = {
         "year_high": year_high,
-        "hist_high": ths_extremes.get("hist_high", []),
+        "hist_high": hist_high,
     }
 
     print("[统计] 计算指数期间涨幅和BIAS25...")

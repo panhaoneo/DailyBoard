@@ -11,6 +11,8 @@ permissions:
 jobs:
   generate:
     runs-on: ubuntu-latest
+    env:
+      IWENCAI_API_KEY: ${{ secrets.IWENCAI_API_KEY }}
     steps:
       - uses: actions/checkout@v4
 

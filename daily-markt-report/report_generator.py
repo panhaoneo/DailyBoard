@@ -118,6 +118,26 @@ def generate_markdown(stats):
             lines.append(f"- **{sector}** ({len(names)}只): {', '.join(names)}")
         lines.append("")
 
+    # 创历史新高
+    hist_high = stock_extremes.get('hist_high', [])
+    lines.append("## 创历史新高股票（沪交所+深交所，排除北交所）\n")
+    lines.append(f"- 创历史新高: **{len(hist_high)}只**（数据来源: 同花顺问财）\n")
+    if hist_high:
+        lines.append(f"### 创历史新高 ({len(hist_high)}只)\n")
+        lines.append("| 代码 | 名称 | 所属行业 | 收盘价 | 涨跌幅 | 历史最高 | 高点日期 | 利润增长 |")
+        lines.append("|------|------|----------|--------|--------|----------|----------|----------|")
+        for s in hist_high[:50]:
+            chg = f"+{s['change_pct']}%" if s['change_pct'] > 0 else f"{s['change_pct']}%"
+            hist_val = s.get('hist_high', s.get('year_high', '-'))
+            hist_val = hist_val if hist_val is not None else "-"
+            hist_date = s.get('hist_high_date', s.get('high_date', '')) or "-"
+            profit_mark = "✓" if s.get('profit_growth') else ""
+            industry = s.get('industry', '')
+            lines.append(f"| {s['code']} | {s['name']} | {industry} | {s['price']} | {chg} | {hist_val} | {hist_date} | {profit_mark} |")
+        if len(hist_high) > 50:
+            lines.append(f"\n*...还有{len(hist_high)-50}只*\n")
+        lines.append("")
+
     # 市场情绪总结
     lines.append("## 市场情绪总结\n")
     up_ratio = stock.get("up_ratio", 0)
@@ -162,7 +182,7 @@ def generate_markdown(stats):
     lines.append("")
     lines.append("---")
     lines.append(f"*报告生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}*")
-    lines.append("*数据来源: 东方财富、腾讯财经（免费公开数据）*")
+    lines.append("*数据来源: 东方财富、腾讯财经、同花顺问财（免费公开数据）*")
 
     return "\n".join(lines)
 
@@ -248,7 +268,7 @@ def generate_html(stats):
                     </tr>"""
 
     # 构建创新高股票表格
-    def build_year_high_table(stock_list):
+    def build_high_table(stock_list, value_key, value_label, date_key='high_date'):
         if not stock_list:
             return "<p style='color:#999;padding:10px 0'>今日无相关股票</p>"
         rows = ""
@@ -256,7 +276,13 @@ def generate_html(stats):
             chg = s['change_pct']
             chg_cls = "up" if chg > 0 else "down" if chg < 0 else "flat"
             chg_prefix = "+" if chg > 0 else ""
-            date_val = s.get('high_date', '')
+            date_val = s.get(date_key, '') or ''
+            if not date_val:
+                alt_key = 'hist_high_date' if date_key == 'high_date' else 'high_date'
+                date_val = s.get(alt_key, '') or ''
+            date_val = date_val if date_val else "-"
+            value_val = s.get(value_key)
+            value_val = value_val if value_val is not None else "-"
             profit_mark = "✓" if s.get('profit_growth') else ""
             industry = s.get('industry', '')
             rows += f"""
@@ -266,45 +292,20 @@ def generate_html(stats):
                         <td>{industry}</td>
                         <td>{s['price']}</td>
                         <td class="{chg_cls}">{chg_prefix}{chg}%</td>
-                        <td>{s['year_high']}</td>
+                        <td>{value_val}</td>
                         <td>{date_val}</td>
                         <td style='text-align:center'>{profit_mark}</td>
                     </tr>"""
         more_info = f"<p style='color:#999;font-size:12px;margin-top:8px'>共 {len(stock_list)} 只</p>" if len(stock_list) > 100 else ""
         return f"""
             <table>
-                <thead><tr><th style="text-align:left">代码</th><th style="text-align:left">名称</th><th>所属行业</th><th>收盘价</th><th>涨跌幅</th><th>年内最高</th><th>高点日期</th><th style='text-align:center'>利润增长</th></tr></thead>
+                <thead><tr><th style="text-align:left">代码</th><th style="text-align:left">名称</th><th>所属行业</th><th>收盘价</th><th>涨跌幅</th><th>{value_label}</th><th>高点日期</th><th style='text-align:center'>利润增长</th></tr></thead>
                 <tbody>{rows}
                 </tbody>
             </table>{more_info}"""
 
-    year_high_table = build_year_high_table(stock_extremes.get('year_high', []))
-    hist_high_table = build_year_high_table(stock_extremes.get('hist_high', [])) if False else "<p style='color:#999;padding:10px 0'>今日无相关股票</p>"
-
-    # 构建历史新高表格（不含行业列）
-    hist_high_list = stock_extremes.get('hist_high', [])
-    if hist_high_list:
-        hist_rows = ""
-        for s in hist_high_list[:100]:
-            chg = s['change_pct']
-            chg_cls = "up" if chg > 0 else "down" if chg < 0 else "flat"
-            chg_prefix = "+" if chg > 0 else ""
-            date_val = s.get('hist_high_date', '')
-            hist_rows += f"""
-                    <tr>
-                        <td style="text-align:left">{s['code']}</td>
-                        <td style="text-align:left">{s['name']}</td>
-                        <td>{s['price']}</td>
-                        <td class="{chg_cls}">{chg_prefix}{chg}%</td>
-                        <td>{s['hist_high']}</td>
-                        <td>{date_val}</td>
-                    </tr>"""
-        hist_high_table = f"""
-            <table>
-                <thead><tr><th style="text-align:left">代码</th><th style="text-align:left">名称</th><th>收盘价</th><th>涨跌幅</th><th>历史最高</th><th>高点日期</th></tr></thead>
-                <tbody>{hist_rows}
-                </tbody>
-            </table>"""
+    year_high_table = build_high_table(stock_extremes.get('year_high', []), 'year_high', '年内最高')
+    hist_high_table = build_high_table(stock_extremes.get('hist_high', []), 'hist_high', '历史最高')
 
     year_high_count = len(stock_extremes.get('year_high', []))
     hist_high_count = len(stock_extremes.get('hist_high', []))
@@ -394,7 +395,7 @@ def generate_html(stats):
     <div class="header">
         <h1>A股市场日报</h1>
         <div class="subtitle">
-            日期: {date} | 更新: {datetime.now().strftime('%H:%M:%S')} | 数据源: 新浪/腾讯
+            日期: {date} | 更新: {datetime.now().strftime('%H:%M:%S')} | 数据源: 东方财富/腾讯/问财
         </div>
     </div>
 
@@ -447,7 +448,8 @@ def generate_html(stats):
 
     <div class="footer">
         报告生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}<br>
-        数据来源: 东方财富、腾讯财经（免费公开数据）
+        数据来源: 东方财富、腾讯财经、同花顺问财（免费公开数据）<br>
+        创历史新高数据来源于同花顺问财
     </div>
 </div>
 </body>

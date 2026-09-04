@@ -480,6 +480,14 @@ def fetch_all_index_histories(days=250):
 def fetch_market_data():
     """一次性获取所有市场数据"""
     stocks = fetch_all_stocks_eastmoney()
+    if len(stocks) < 3000:
+        print(f"[!] 东方财富仅获取 {len(stocks)} 只，等待10秒后重试...")
+        time.sleep(10)
+        stocks = fetch_all_stocks_eastmoney()
+    if len(stocks) < 1000:
+        print(f"[!] 东方财富数据不完整（{len(stocks)}只），回退新浪财经API...")
+        stocks = fetch_all_stocks_sina()
+
     stocks = fetch_all_stock_yearly_data(stocks)  # 获取今年日K线，用于计算年内新低
     indices = fetch_index_quotes_tencent()
     histories = fetch_all_index_histories(days=250)
