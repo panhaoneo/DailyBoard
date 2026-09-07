@@ -2,7 +2,7 @@ name: Daily XWLB Scrape
 
 on:
   schedule:
-    - cron: '30 12 * * *'  # UTC 12:30 = Beijing 20:30
+    - cron: '50 15 * * *'  # UTC 15:50 = Beijing 23:50 (mrxwlb.com 约23:45更新当天文字版)
   workflow_dispatch:
     inputs:
       date:
