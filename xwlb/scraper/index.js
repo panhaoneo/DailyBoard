@@ -146,6 +146,11 @@ async function main() {
   }
 
   console.log(`\nDone. Scraped ${count}/${dates.length} day(s).`);
+
+  if (count < dates.length) {
+    console.error(`Warning: ${dates.length - count} day(s) not scraped (HTTP 404 or no content)`);
+    process.exitCode = 1;
+  }
 }
 
 main().catch(console.error);
