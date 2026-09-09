@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const BASE_URL = 'http://mrxwlb.com';
+const GOV_BASE_URL = 'https://cn.govopendata.com/xinwenlianbo';
 
 function buildUrl(date) {
   const y = date.getFullYear();
@@ -11,6 +12,13 @@ function buildUrl(date) {
   const d = String(date.getDate()).padStart(2, '0');
   const encoded = `${y}%e5%b9%b4${m}%e6%9c%88${d}%e6%97%a5%e6%96%b0%e9%97%bb%e8%81%94%e6%92%ad%e6%96%87%e5%ad%97%e7%89%88`;
   return `${BASE_URL}/${y}/${m}/${d}/${encoded}/`;
+}
+
+function buildGovUrl(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${GOV_BASE_URL}/${y}${m}${d}/`;
 }
 
 function htmlToMarkdown(html, dateStr) {
@@ -69,33 +77,77 @@ function htmlToMarkdown(html, dateStr) {
   return lines.join('\n').replace(/\n{3,}/g, '\n\n').trim() + '\n';
 }
 
+function govHtmlToMarkdown(html, dateStr) {
+  const $ = cheerio.load(html);
+  const articles = $('article.content-section');
+  if (!articles.length) return null;
+
+  const lines = [];
+  lines.push(`# ${dateStr} 新闻联播文字版`);
+  lines.push('');
+  lines.push(`> 来源：[cn.govopendata.com 新闻联播](${GOV_BASE_URL})`);
+  lines.push('');
+
+  let count = 0;
+  articles.each((_, el) => {
+    const $el = $(el);
+    const title = $el.find('h2.content-heading').first().text().trim();
+    const paras = [];
+    $el.find('.content-body p').each((__, p) => {
+      const t = $(p).text().trim();
+      if (t) paras.push(t);
+    });
+    if (!title && !paras.length) return;
+    count++;
+    if (title) {
+      lines.push(`## ${title}`);
+      lines.push('');
+    }
+    paras.forEach((t) => {
+      lines.push(t);
+      lines.push('');
+    });
+  });
+
+  if (!count) return null;
+  return lines.join('\n').replace(/\n{3,}/g, '\n\n').trim() + '\n';
+}
+
 async function scrapeDate(date) {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, '0');
   const d = String(date.getDate()).padStart(2, '0');
   const dateStr = `${y}年${m}月${d}日`;
-  const url = buildUrl(date);
 
-  console.log(`Fetching: ${dateStr} -> ${url}`);
+  // 主源 mrxwlb.com，失败时回退 cn.govopendata.com
+  const sources = [
+    { name: 'mrxwlb', url: buildUrl(date), toMd: htmlToMarkdown },
+    { name: 'govopendata', url: buildGovUrl(date), toMd: govHtmlToMarkdown },
+  ];
 
-  try {
-    const res = await fetch(url);
-    if (!res.ok) {
-      console.log(`  HTTP ${res.status}, skipping`);
-      return null;
+  for (const source of sources) {
+    console.log(`Fetching: ${dateStr} -> ${source.url} (${source.name})`);
+    try {
+      const res = await fetch(source.url);
+      if (!res.ok) {
+        console.log(`  HTTP ${res.status}, trying next source`);
+        continue;
+      }
+      const html = await res.text();
+      const md = source.toMd(html, dateStr);
+      if (!md) {
+        console.log('  No content found, trying next source');
+        continue;
+      }
+      console.log(`  OK from ${source.name} (${md.length} chars)`);
+      return { dateStr, md, slug: `${y}-${m}-${d}` };
+    } catch (err) {
+      console.error(`  Error: ${err.message}, trying next source`);
     }
-    const html = await res.text();
-    const md = htmlToMarkdown(html, dateStr);
-    if (!md) {
-      console.log('  No content found, skipping');
-      return null;
-    }
-    console.log(`  OK (${md.length} chars)`);
-    return { dateStr, md, slug: `${y}-${m}-${d}` };
-  } catch (err) {
-    console.error(`  Error: ${err.message}`);
-    return null;
   }
+
+  console.log('  All sources failed, skipping');
+  return null;
 }
 
 function getDateRange(startStr, endStr) {
