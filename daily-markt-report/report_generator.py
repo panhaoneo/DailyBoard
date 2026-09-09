@@ -4,6 +4,12 @@
 
 import os
 from datetime import datetime
+from zoneinfo import ZoneInfo
+
+
+def _now():
+    """当前时间（北京时间）"""
+    return datetime.now(ZoneInfo('Asia/Shanghai'))
 
 
 def _fmt(val, suffix="%", default="-"):
@@ -36,7 +42,7 @@ def generate_markdown(stats):
 
     lines = []
     lines.append(f"# A股市场日报 - {date}\n")
-    lines.append(f"> 数据更新时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+    lines.append(f"> 数据更新时间: {_now().strftime('%Y-%m-%d %H:%M:%S')}\n")
 
     # 统一表格：按照原图格式
     lines.append("## 市场数据总览\n")
@@ -181,7 +187,7 @@ def generate_markdown(stats):
 
     lines.append("")
     lines.append("---")
-    lines.append(f"*报告生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}*")
+    lines.append(f"*报告生成时间: {_now().strftime('%Y-%m-%d %H:%M:%S')}*")
     lines.append("*数据来源: 东方财富、腾讯财经、同花顺问财（免费公开数据）*")
 
     return "\n".join(lines)
@@ -395,7 +401,7 @@ def generate_html(stats):
     <div class="header">
         <h1>A股市场日报</h1>
         <div class="subtitle">
-            日期: {date} | 更新: {datetime.now().strftime('%H:%M:%S')} | 数据源: 东方财富/腾讯/问财
+            日期: {date} | 更新: {_now().strftime('%H:%M:%S')} | 数据源: 东方财富/腾讯/问财
         </div>
     </div>
 
@@ -447,7 +453,7 @@ def generate_html(stats):
     </div>
 
     <div class="footer">
-        报告生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}<br>
+        报告生成时间: {_now().strftime('%Y-%m-%d %H:%M:%S')}<br>
         数据来源: 东方财富、腾讯财经、同花顺问财（免费公开数据）<br>
         创历史新高数据来源于同花顺问财
     </div>

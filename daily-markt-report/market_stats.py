@@ -398,6 +398,19 @@ def calc_all_stats(market_data):
 
     hist_high.sort(key=lambda x: x.get("industry", "") or "zzz")
 
+    # 补充缺失的行业（主列表缺页或回退新浪源时行业为空）
+    all_extremes = year_high + hist_high
+    missing_codes = [s["code"] for s in all_extremes if not s.get("industry")]
+    if missing_codes:
+        print(f"[统计] 补充 {len(missing_codes)} 只新高股票的行业...")
+        from data_fetcher import fetch_industries_ulist
+        industry_map = fetch_industries_ulist(missing_codes)
+        for s in all_extremes:
+            if not s.get("industry"):
+                s["industry"] = industry_map.get(s["code"], "")
+        year_high.sort(key=lambda x: x.get("industry", "") or "zzz")
+        hist_high.sort(key=lambda x: x.get("industry", "") or "zzz")
+
     # 计算两市总成交额
     total_turnover = sum(s.get("amount", 0) for s in stocks)
 

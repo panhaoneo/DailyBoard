@@ -477,6 +477,55 @@ def fetch_all_index_histories(days=250):
     return histories
 
 
+def fetch_industries_ulist(codes):
+    """
+    通过东方财富ulist接口按代码批量查询所属行业
+    用于补充主行情列表缺失/回退场景下新高股票的行业信息
+    codes: list[str] 6位股票代码
+    返回: dict {code: industry}
+    """
+    if not codes:
+        return {}
+
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Referer": "https://quote.eastmoney.com/",
+    }
+
+    def secid_of(code):
+        prefix = "1" if code.startswith(("6", "9", "5")) else "0"
+        return f"{prefix}.{code}"
+
+    result = {}
+    for i in range(0, len(codes), 50):
+        chunk = codes[i:i + 50]
+        secids = ",".join(secid_of(c) for c in chunk)
+        url = (
+            f"https://push2.eastmoney.com/api/qt/ulist.np/get"
+            f"?secids={secids}&fields=f12,f100&ut=bd1d9ddb04089700cf9c27f6f7426281"
+        )
+        for attempt in range(3):
+            try:
+                resp = requests.get(url, headers=headers, timeout=10)
+                data = resp.json().get("data", {}) or {}
+                diff = data.get("diff", [])
+                if isinstance(diff, dict):
+                    diff = list(diff.values())
+                for item in diff or []:
+                    code = str(item.get("f12", ""))
+                    industry = item.get("f100", "")
+                    if code and industry:
+                        result[code] = industry
+                break
+            except Exception as e:
+                if attempt < 2:
+                    time.sleep(2)
+                else:
+                    print(f"    [!] 行业补充查询失败（第{i//50+1}批）：{e}")
+
+    return result
+
+
 def fetch_market_data():
     """一次性获取所有市场数据"""
     stocks = fetch_all_stocks_eastmoney()

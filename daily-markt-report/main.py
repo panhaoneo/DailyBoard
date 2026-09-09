@@ -15,6 +15,7 @@ import sys
 import json
 import argparse
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 from data_fetcher import fetch_market_data
 from market_stats import calc_all_stats
@@ -70,7 +71,7 @@ def main():
     
     print("=" * 60)
     print("  A 股市场日报生成器")
-    print(f"  运行时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"  运行时间：{datetime.now(ZoneInfo('Asia/Shanghai')).strftime('%Y-%m-%d %H:%M:%S')}（北京时间）")
     print("=" * 60)
     
     # 获取数据
