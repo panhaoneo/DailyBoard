@@ -113,16 +113,37 @@ function govHtmlToMarkdown(html, dateStr) {
   return lines.join('\n').replace(/\n{3,}/g, '\n\n').trim() + '\n';
 }
 
+function jinaToMarkdown(text, dateStr) {
+  // r.jina.ai 返回: 头部元信息 + "Markdown Content:" + 正文markdown
+  const marker = 'Markdown Content:';
+  const idx = text.indexOf(marker);
+  if (idx === -1) return null;
+  const body = text.slice(idx + marker.length).trim();
+  if (!body) return null;
+
+  const lines = [];
+  lines.push(`# ${dateStr} 新闻联播文字版`);
+  lines.push('');
+  lines.push(`> 来源：[cn.govopendata.com 新闻联播](${GOV_BASE_URL})`);
+  lines.push('');
+  lines.push(body);
+  return lines.join('\n').replace(/\n{3,}/g, '\n\n').trim() + '\n';
+}
+
 async function scrapeDate(date) {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, '0');
   const d = String(date.getDate()).padStart(2, '0');
   const dateStr = `${y}年${m}月${d}日`;
 
-  // 主源 mrxwlb.com，失败时回退 cn.govopendata.com
+  // 数据源按顺序尝试：主源 → govopendata直连 → 代理1(allorigins) → 代理2(jina)
+  // govopendata 对机房IP有 Cloudflare JS 质询(403)，机房环境需走代理
+  const govUrl = buildGovUrl(date);
   const sources = [
     { name: 'mrxwlb', url: buildUrl(date), toMd: htmlToMarkdown },
-    { name: 'govopendata', url: buildGovUrl(date), toMd: govHtmlToMarkdown },
+    { name: 'govopendata', url: govUrl, toMd: govHtmlToMarkdown },
+    { name: 'govopendata-proxy', url: `https://api.allorigins.win/raw?url=${encodeURIComponent(govUrl)}`, toMd: govHtmlToMarkdown },
+    { name: 'govopendata-jina', url: `https://r.jina.ai/${govUrl}`, toMd: jinaToMarkdown },
   ];
 
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
