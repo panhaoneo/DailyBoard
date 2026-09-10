@@ -1,0 +1,52 @@
+name: XWLB Fetch Probe 2
+
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Probe jina + allorigins variations
+        run: |
+          target="https://cn.govopendata.com/xinwenlianbo/20260909/"
+          echo "=== A. jina via curl minimal UA ==="
+          curl -s -o /tmp/a -w "HTTP %{http_code}, %{size_download}B, %{time_total}s\n" --max-time 60 "https://r.jina.ai/${target}" -H "User-Agent: Mozilla/5.0" || true
+
+          echo "=== B. jina via curl full browser headers ==="
+          curl -s -o /tmp/b -w "HTTP %{http_code}, %{size_download}B, %{time_total}s\n" --max-time 60 "https://r.jina.ai/${target}" \
+            -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" \
+            -H "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8" \
+            -H "Accept-Language: zh-CN,zh;q=0.9,en;q=0.8" || true
+
+          echo "=== C. jina via node https.get (scraper fingerprint) ==="
+          node -e "
+          const https = require('https');
+          https.get('https://r.jina.ai/${target}', {headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8'
+          }}, (res) => {
+            console.log('HTTP', res.statusCode);
+            let n = 0;
+            res.on('data', c => n += c.length);
+            res.on('end', () => console.log('bytes', n));
+          }).on('error', e => console.log('ERR', e.message));
+          " || true
+
+          echo "=== D. allorigins timing x2 ==="
+          enc="https%3A%2F%2Fcn.govopendata.com%2Fxinwenlianbo%2F20260909%2F"
+          curl -s -o /tmp/d1 -w "HTTP %{http_code}, %{size_download}B, %{time_total}s\n" --max-time 60 "https://api.allorigins.win/raw?url=${enc}" -H "User-Agent: Mozilla/5.0" || true
+          curl -s -o /tmp/d2 -w "HTTP %{http_code}, %{size_download}B, %{time_total}s\n" --max-time 60 "https://api.allorigins.win/raw?url=${enc}" -H "User-Agent: Mozilla/5.0" || true
+
+          echo "=== E. corsproxy.io variant ==="
+          curl -s -o /tmp/e -w "HTTP %{http_code}, %{size_download}B, %{time_total}s\n" --max-time 30 "https://corsproxy.io/?url=${enc}" -H "User-Agent: Mozilla/5.0" || true
+
+          echo ""
+          echo "=== snippets ==="
+          for f in a b d1 e; do echo "--- $f ---"; head -c 200 /tmp/$f 2>/dev/null | tr '\n' ' ' || true; echo ""; done
+        continue-on-error: true
