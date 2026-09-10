@@ -371,14 +371,12 @@ def calc_all_stats(market_data):
             code_to_industry[code] = industry
 
     # 为THS的year_high添加profit_growth标记和行业信息
+    # 注: 同花顺"一年新高"榜单本身就是当日创年内新高的股票，
+    # high_date是"前期高点日期"(被突破的前高日期)，不是当日日期
     year_high = ths_extremes.get("year_high", [])
-    today_str = datetime.now().strftime("%Y-%m-%d")
-    today_new_high = []
     for s in year_high:
         s["profit_growth"] = s["code"] in profit_growth_codes
         s["industry"] = code_to_industry.get(s["code"], "")
-        if s.get("high_date") == today_str:
-            today_new_high.append(s)
 
     # 按行业排序
     year_high.sort(key=lambda x: x.get("industry", "") or "zzz")
@@ -414,15 +412,14 @@ def calc_all_stats(market_data):
     # 计算两市总成交额
     total_turnover = sum(s.get("amount", 0) for s in stocks)
 
-    # 按行业统计今日创新高的股票
+    # 按行业统计当日创新高的股票（做多行业分布）
     sector_summary = {}
-    for s in today_new_high:
-        ind = s.get("industry", "未知")
-        if not ind:
-            ind = "未知"
-        if ind not in sector_summary:
-            sector_summary[ind] = []
-        sector_summary[ind].append(s["name"])
+    for s in year_high:
+        ind = s.get("industry") or "未知"
+        sector_summary.setdefault(ind, []).append(s["name"])
+
+    # 创新高股票中利润增长的数量
+    profit_growth_count = sum(1 for s in year_high if s.get("profit_growth"))
 
     stock_extremes = {
         "year_high": year_high,
@@ -438,7 +435,7 @@ def calc_all_stats(market_data):
         "stock_extremes": stock_extremes,
         "index_returns": index_returns,
         "total_turnover": total_turnover,
-        "today_new_high": today_new_high,
+        "year_high_profit_growth": profit_growth_count,
         "sector_summary": sector_summary,
         "date": datetime.now().strftime("%Y-%m-%d"),
     }

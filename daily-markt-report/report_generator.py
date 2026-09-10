@@ -46,79 +46,71 @@ def generate_markdown(stats):
 
     # 统一表格：按照原图格式
     lines.append("## 市场数据总览\n")
-    lines.append("| 名称 | 今年 | 本月 | 本周 | 当天 | BIAS25 |")
-    lines.append("|------|------|------|------|------|--------|")
+    lines.append("| 名称 | 今年 | 本月 | 当天 |")
+    lines.append("|------|------|------|------|")
 
-    # A股统计行 - 使用period_stats填充今年/本月/本周
+    # A股统计行 - 使用period_stats填充今年/本月
     gp_count = lambda key: _get_period_val(period_stats, 'year', key, suffix="", default="-")
     mp_count = lambda key: _get_period_val(period_stats, 'month', key, suffix="", default="-")
-    wp_count = lambda key: _get_period_val(period_stats, 'week', key, suffix="", default="-")
     gp = lambda key: _get_period_val(period_stats, 'year', key, default="-")
     mp = lambda key: _get_period_val(period_stats, 'month', key, default="-")
-    wp = lambda key: _get_period_val(period_stats, 'week', key, default="-")
 
-    lines.append(f"| A股总数量 | {gp_count('total')} | {mp_count('total')} | {wp_count('total')} | {stock.get('total', '-')} | - |")
-    lines.append(f"| A股上涨数量 | {gp_count('up_count')} | {mp_count('up_count')} | {wp_count('up_count')} | {stock.get('up_count', '-')} | - |")
-    lines.append(f"| A股下跌数量 | {gp_count('down_count')} | {mp_count('down_count')} | {wp_count('down_count')} | {stock.get('down_count', '-')} | - |")
-    lines.append(f"| A股零涨幅数量 | {gp_count('flat_count')} | {mp_count('flat_count')} | {wp_count('flat_count')} | {stock.get('flat_count', '-')} | - |")
+    lines.append(f"| A股总数量 | {gp_count('total')} | {mp_count('total')} | {stock.get('total', '-')} |")
+    lines.append(f"| A股上涨数量 | {gp_count('up_count')} | {mp_count('up_count')} | {stock.get('up_count', '-')} |")
+    lines.append(f"| A股下跌数量 | {gp_count('down_count')} | {mp_count('down_count')} | {stock.get('down_count', '-')} |")
+    lines.append(f"| A股零涨幅数量 | {gp_count('flat_count')} | {mp_count('flat_count')} | {stock.get('flat_count', '-')} |")
 
     # 涨幅分布行 - 使用个数而非百分比
     dist_counts = stock.get("distribution_counts", {})
     year_dist_counts = period_stats.get('year', {}).get('distribution_counts', {})
     month_dist_counts = period_stats.get('month', {}).get('distribution_counts', {})
-    week_dist_counts = period_stats.get('week', {}).get('distribution_counts', {})
     for name in dist_counts.keys():
         yv = year_dist_counts.get(name, "-")
         mv = month_dist_counts.get(name, "-")
-        wv = week_dist_counts.get(name, "-")
         dv = dist_counts.get(name, "-")
-        lines.append(f"| {name} | {yv} | {mv} | {wv} | {dv} | - |")
+        lines.append(f"| {name} | {yv} | {mv} | {dv} |")
 
     # 比例和平均行
-    lines.append(f"| A股上涨比例 | {gp('up_ratio')} | {mp('up_ratio')} | {wp('up_ratio')} | {_fmt(stock.get('up_ratio'))} | - |")
-    lines.append(f"| A股下跌比例 | {gp('down_ratio')} | {mp('down_ratio')} | {wp('down_ratio')} | {_fmt(stock.get('down_ratio'))} | - |")
-    lines.append(f"| A股算术平均涨幅 | {gp('avg_change')} | {mp('avg_change')} | {wp('avg_change')} | {_fmt(stock.get('avg_change'))} | - |")
-    lines.append(f"| A股涨幅中位数 | {gp('median_change')} | {mp('median_change')} | {wp('median_change')} | {_fmt(stock.get('median_change'))} | - |")
+    lines.append(f"| A股上涨比例 | {gp('up_ratio')} | {mp('up_ratio')} | {_fmt(stock.get('up_ratio'))} |")
+    lines.append(f"| A股下跌比例 | {gp('down_ratio')} | {mp('down_ratio')} | {_fmt(stock.get('down_ratio'))} |")
+    lines.append(f"| A股算术平均涨幅 | {gp('avg_change')} | {mp('avg_change')} | {_fmt(stock.get('avg_change'))} |")
+    lines.append(f"| A股涨幅中位数 | {gp('median_change')} | {mp('median_change')} | {_fmt(stock.get('median_change'))} |")
 
     # 指数行
     for name, data in index_returns.items():
         yr = _fmt(data.get("year_return"), default="-")
         mo = _fmt(data.get("month_return"), default="-")
-        wk = _fmt(data.get("week_return"), default="-")
         dy = _fmt(data.get("day_return"), default="-")
-        bias = _fmt(data.get("bias25"), default="-")
-        lines.append(f"| {name} | {yr} | {mo} | {wk} | {dy} | {bias} |")
+        lines.append(f"| {name} | {yr} | {mo} | {dy} |")
 
     lines.append("")
 
-    # 创新高股票统计
+    # 创新高股票统计（同花顺一年新高榜单即当日创年内新高的股票）
     year_high = stock_extremes.get('year_high', [])
-    today_new_high = stats.get('today_new_high', [])
     sector_summary = stats.get('sector_summary', {})
+    profit_growth_count = stats.get('year_high_profit_growth', 0)
 
     lines.append("## 创年内新高股票（沪交所+深交所，排除北交所）\n")
-    lines.append(f"- 创年内新高: **{len(year_high)}只**")
-    lines.append(f"- 当日创新高: **{len(today_new_high)}只**")
+    lines.append(f"- 创年内新高: **{len(year_high)}只**（均为当日创新高）")
+    lines.append(f"- 其中利润增长: **{profit_growth_count}只**")
     lines.append("")
 
     # 详细股票列表
     if year_high:
         lines.append(f"### 创年内新高 ({len(year_high)}只)\n")
-        lines.append("| 代码 | 名称 | 所属行业 | 收盘价 | 涨跌幅 | 年内最高 | 高点日期 | 利润增长 |")
-        lines.append("|------|------|----------|--------|--------|----------|----------|----------|")
+        lines.append("| 代码 | 名称 | 所属行业 | 利润增长 |")
+        lines.append("|------|------|----------|----------|")
         for s in year_high[:50]:
-            chg = f"+{s['change_pct']}%" if s['change_pct'] > 0 else f"{s['change_pct']}%"
-            high_date = s.get('high_date', '')
             profit_mark = "✓" if s.get('profit_growth') else ""
             industry = s.get('industry', '')
-            lines.append(f"| {s['code']} | {s['name']} | {industry} | {s['price']} | {chg} | {s['year_high']} | {high_date} | {profit_mark} |")
+            lines.append(f"| {s['code']} | {s['name']} | {industry} | {profit_mark} |")
         if len(year_high) > 50:
             lines.append(f"\n*...还有{len(year_high)-50}只*\n")
         lines.append("")
 
     # 当日创新高板块分类总结
     if sector_summary:
-        lines.append("### 当日创新高板块分布\n")
+        lines.append("### 当日创新高板块分布（做多行业）\n")
         sorted_sectors = sorted(sector_summary.items(), key=lambda x: len(x[1]), reverse=True)
         for sector, names in sorted_sectors:
             lines.append(f"- **{sector}** ({len(names)}只): {', '.join(names)}")
@@ -126,20 +118,19 @@ def generate_markdown(stats):
 
     # 创历史新高
     hist_high = stock_extremes.get('hist_high', [])
+    hist_profit_count = sum(1 for s in hist_high if s.get('profit_growth'))
     lines.append("## 创历史新高股票（沪交所+深交所，排除北交所）\n")
-    lines.append(f"- 创历史新高: **{len(hist_high)}只**（数据来源: 同花顺问财）\n")
+    lines.append(f"- 创历史新高: **{len(hist_high)}只**（数据来源: 同花顺问财）")
+    lines.append(f"- 其中利润增长: **{hist_profit_count}只**")
+    lines.append("")
     if hist_high:
         lines.append(f"### 创历史新高 ({len(hist_high)}只)\n")
-        lines.append("| 代码 | 名称 | 所属行业 | 收盘价 | 涨跌幅 | 历史最高 | 高点日期 | 利润增长 |")
-        lines.append("|------|------|----------|--------|--------|----------|----------|----------|")
+        lines.append("| 代码 | 名称 | 所属行业 | 利润增长 |")
+        lines.append("|------|------|----------|----------|")
         for s in hist_high[:50]:
-            chg = f"+{s['change_pct']}%" if s['change_pct'] > 0 else f"{s['change_pct']}%"
-            hist_val = s.get('hist_high', s.get('year_high', '-'))
-            hist_val = hist_val if hist_val is not None else "-"
-            hist_date = s.get('hist_high_date', s.get('high_date', '')) or "-"
             profit_mark = "✓" if s.get('profit_growth') else ""
             industry = s.get('industry', '')
-            lines.append(f"| {s['code']} | {s['name']} | {industry} | {s['price']} | {chg} | {hist_val} | {hist_date} | {profit_mark} |")
+            lines.append(f"| {s['code']} | {s['name']} | {industry} | {profit_mark} |")
         if len(hist_high) > 50:
             lines.append(f"\n*...还有{len(hist_high)-50}只*\n")
         lines.append("")
@@ -227,68 +218,51 @@ def generate_html(stats):
     # 辅助函数：获取期间值
     def gp(key): return _get_period_val(period_stats, 'year', key, default="-")
     def mp(key): return _get_period_val(period_stats, 'month', key, default="-")
-    def wp(key): return _get_period_val(period_stats, 'week', key, default="-")
 
     # 构建统一表格行
     table_rows = ""
 
     # A股统计行 - 使用period_stats填充
-    table_rows += f'<tr><td style="text-align:left">A股总数量</td><td>{gp("total")}</td><td>{mp("total")}</td><td>{wp("total")}</td><td>{stock.get("total", "-")}</td><td>-</td></tr>'
-    table_rows += f'<tr><td style="text-align:left">A股上涨数量</td><td>{gp("up_count")}</td><td>{mp("up_count")}</td><td>{wp("up_count")}</td><td>{stock.get("up_count", "-")}</td><td>-</td></tr>'
-    table_rows += f'<tr><td style="text-align:left">A股下跌数量</td><td>{gp("down_count")}</td><td>{mp("down_count")}</td><td>{wp("down_count")}</td><td>{stock.get("down_count", "-")}</td><td>-</td></tr>'
-    table_rows += f'<tr><td style="text-align:left">A股零涨幅数量</td><td>{gp("flat_count")}</td><td>{mp("flat_count")}</td><td>{wp("flat_count")}</td><td>{stock.get("flat_count", "-")}</td><td>-</td></tr>'
+    table_rows += f'<tr><td style="text-align:left">A股总数量</td><td>{gp("total")}</td><td>{mp("total")}</td><td>{stock.get("total", "-")}</td></tr>'
+    table_rows += f'<tr><td style="text-align:left">A股上涨数量</td><td>{gp("up_count")}</td><td>{mp("up_count")}</td><td>{stock.get("up_count", "-")}</td></tr>'
+    table_rows += f'<tr><td style="text-align:left">A股下跌数量</td><td>{gp("down_count")}</td><td>{mp("down_count")}</td><td>{stock.get("down_count", "-")}</td></tr>'
+    table_rows += f'<tr><td style="text-align:left">A股零涨幅数量</td><td>{gp("flat_count")}</td><td>{mp("flat_count")}</td><td>{stock.get("flat_count", "-")}</td></tr>'
 
     # 涨幅分布行 - 使用个数而非百分比
     dist_counts = stock.get("distribution_counts", {})
     year_dist_counts = period_stats.get('year', {}).get('distribution_counts', {})
     month_dist_counts = period_stats.get('month', {}).get('distribution_counts', {})
-    week_dist_counts = period_stats.get('week', {}).get('distribution_counts', {})
     for name, val in dist_counts.items():
         yv = year_dist_counts.get(name, "-")
         mv = month_dist_counts.get(name, "-")
-        wv = week_dist_counts.get(name, "-")
-        table_rows += f'<tr><td style="text-align:left">{name}</td><td>{yv}</td><td>{mv}</td><td>{wv}</td><td>{val}</td><td>-</td></tr>'
+        table_rows += f'<tr><td style="text-align:left">{name}</td><td>{yv}</td><td>{mv}</td><td>{val}</td></tr>'
 
     # 比例和平均行
-    table_rows += f'<tr><td style="text-align:left">A股上涨比例</td><td>{gp("up_ratio")}</td><td>{mp("up_ratio")}</td><td>{wp("up_ratio")}</td><td>{stock.get("up_ratio", "-")}%</td><td>-</td></tr>'
-    table_rows += f'<tr><td style="text-align:left">A股下跌比例</td><td>{gp("down_ratio")}</td><td>{mp("down_ratio")}</td><td>{wp("down_ratio")}</td><td>{stock.get("down_ratio", "-")}%</td><td>-</td></tr>'
-    table_rows += f'<tr><td style="text-align:left">A股算术平均涨幅</td><td>{gp("avg_change")}</td><td>{mp("avg_change")}</td><td>{wp("avg_change")}</td><td class="{"up" if avg_change > 0 else "down" if avg_change < 0 else "flat"}">{"+" if avg_change > 0 else ""}{stock.get("avg_change", "-")}%</td><td>-</td></tr>'
+    table_rows += f'<tr><td style="text-align:left">A股上涨比例</td><td>{gp("up_ratio")}</td><td>{mp("up_ratio")}</td><td>{stock.get("up_ratio", "-")}%</td></tr>'
+    table_rows += f'<tr><td style="text-align:left">A股下跌比例</td><td>{gp("down_ratio")}</td><td>{mp("down_ratio")}</td><td>{stock.get("down_ratio", "-")}%</td></tr>'
+    table_rows += f'<tr><td style="text-align:left">A股算术平均涨幅</td><td>{gp("avg_change")}</td><td>{mp("avg_change")}</td><td class="{"up" if avg_change > 0 else "down" if avg_change < 0 else "flat"}">{"+" if avg_change > 0 else ""}{stock.get("avg_change", "-")}%</td></tr>'
     med = stock.get("median_change", 0)
-    table_rows += f'<tr><td style="text-align:left">A股涨幅中位数</td><td>{gp("median_change")}</td><td>{mp("median_change")}</td><td>{wp("median_change")}</td><td class="{"up" if med > 0 else "down" if med < 0 else "flat"}">{"+" if med > 0 else ""}{med}%</td><td>-</td></tr>'
+    table_rows += f'<tr><td style="text-align:left">A股涨幅中位数</td><td>{gp("median_change")}</td><td>{mp("median_change")}</td><td class="{"up" if med > 0 else "down" if med < 0 else "flat"}">{"+" if med > 0 else ""}{med}%</td></tr>'
 
     # 指数行
     for name, data in index_returns.items():
         yr = data.get('year_return')
         mo = data.get('month_return')
-        wk = data.get('week_return')
         dy = data.get('day_return')
-        bias = data.get('bias25')
         table_rows += f"""
                     <tr>
                         <td style="text-align:left;font-weight:600">{name}</td>
                         {_html_cell(yr)}
                         {_html_cell(mo)}
-                        {_html_cell(wk)}
                         {_html_cell(dy)}
-                        {_html_cell(bias)}
                     </tr>"""
 
-    # 构建创新高股票表格
-    def build_high_table(stock_list, value_key, value_label, date_key='high_date'):
+    # 构建创新高股票表格（代码/名称/所属行业/利润增长）
+    def build_high_table(stock_list):
         if not stock_list:
             return "<p style='color:#999;padding:10px 0'>今日无相关股票</p>"
         rows = ""
         for s in stock_list[:100]:
-            chg = s['change_pct']
-            chg_cls = "up" if chg > 0 else "down" if chg < 0 else "flat"
-            chg_prefix = "+" if chg > 0 else ""
-            date_val = s.get(date_key, '') or ''
-            if not date_val:
-                alt_key = 'hist_high_date' if date_key == 'high_date' else 'high_date'
-                date_val = s.get(alt_key, '') or ''
-            date_val = date_val if date_val else "-"
-            value_val = s.get(value_key)
-            value_val = value_val if value_val is not None else "-"
             profit_mark = "✓" if s.get('profit_growth') else ""
             industry = s.get('industry', '')
             rows += f"""
@@ -296,26 +270,22 @@ def generate_html(stats):
                         <td style="text-align:left">{s['code']}</td>
                         <td style="text-align:left">{s['name']}</td>
                         <td>{industry}</td>
-                        <td>{s['price']}</td>
-                        <td class="{chg_cls}">{chg_prefix}{chg}%</td>
-                        <td>{value_val}</td>
-                        <td>{date_val}</td>
                         <td style='text-align:center'>{profit_mark}</td>
                     </tr>"""
         more_info = f"<p style='color:#999;font-size:12px;margin-top:8px'>共 {len(stock_list)} 只</p>" if len(stock_list) > 100 else ""
         return f"""
             <table>
-                <thead><tr><th style="text-align:left">代码</th><th style="text-align:left">名称</th><th>所属行业</th><th>收盘价</th><th>涨跌幅</th><th>{value_label}</th><th>高点日期</th><th style='text-align:center'>利润增长</th></tr></thead>
+                <thead><tr><th style="text-align:left">代码</th><th style="text-align:left">名称</th><th>所属行业</th><th style='text-align:center'>利润增长</th></tr></thead>
                 <tbody>{rows}
                 </tbody>
             </table>{more_info}"""
 
-    year_high_table = build_high_table(stock_extremes.get('year_high', []), 'year_high', '年内最高')
-    hist_high_table = build_high_table(stock_extremes.get('hist_high', []), 'hist_high', '历史最高')
+    year_high_table = build_high_table(stock_extremes.get('year_high', []))
+    hist_high_table = build_high_table(stock_extremes.get('hist_high', []))
 
     year_high_count = len(stock_extremes.get('year_high', []))
     hist_high_count = len(stock_extremes.get('hist_high', []))
-    today_new_high_count = len(stats.get('today_new_high', []))
+    year_high_profit_count = stats.get('year_high_profit_growth', 0)
     sector_summary = stats.get('sector_summary', {})
     total_turnover = stats.get('total_turnover', 0)
 
@@ -336,7 +306,7 @@ def generate_html(stats):
             sector_items += f'<li><strong>{sector}</strong> ({len(names)}只): {", ".join(names)}</li>'
         sector_html = f"""
         <div style="margin-top:16px;padding:16px;background:#f8f9fb;border-radius:8px">
-            <h4 style="font-size:14px;color:#333;margin-bottom:10px">当日创新高板块分布</h4>
+            <h4 style="font-size:14px;color:#333;margin-bottom:10px">当日创新高板块分布（做多行业）</h4>
             <ul style="list-style:none;padding:0;margin:0">{sector_items}</ul>
         </div>"""
 
@@ -409,7 +379,7 @@ def generate_html(stats):
         <h2>市场数据总览</h2>
         <table>
             <thead>
-                <tr><th style="text-align:left">名称</th><th>今年</th><th>本月</th><th>本周</th><th>当天</th><th>BIAS25</th></tr>
+                <tr><th style="text-align:left">名称</th><th>今年</th><th>本月</th><th>当天</th></tr>
             </thead>
             <tbody>{table_rows}
             </tbody>
@@ -420,12 +390,12 @@ def generate_html(stats):
         <h2>创新高股票（沪交所+深交所，排除北交所）</h2>
         <div class="stat-grid">
             <div class="stat-card">
-                <div class="label">创年内新高</div>
+                <div class="label">创年内新高（当日）</div>
                 <div class="value up">{year_high_count}只</div>
             </div>
             <div class="stat-card">
-                <div class="label">当日创新高</div>
-                <div class="value up">{today_new_high_count}只</div>
+                <div class="label">其中利润增长</div>
+                <div class="value up">{year_high_profit_count}只</div>
             </div>
             <div class="stat-card">
                 <div class="label">创历史新高</div>
