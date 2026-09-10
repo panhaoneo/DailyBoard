@@ -21,7 +21,7 @@ export function fetch(url, options = {}) {
     const mod = url.startsWith('https') ? https : http;
     const req = mod.get(url, {
       ...TLS_OPTIONS,
-      headers: {
+      headers: options.rawHeaders || {
         ...DEFAULT_HEADERS,
         ...options.headers,
       },
@@ -38,6 +38,6 @@ export function fetch(url, options = {}) {
       res.on('error', reject);
     });
     req.on('error', reject);
-    req.setTimeout(15000, () => { req.destroy(); reject(new Error('timeout')); });
+    req.setTimeout(options.timeout || 15000, () => { req.destroy(); reject(new Error('timeout')); });
   });
 }

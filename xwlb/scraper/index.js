@@ -138,12 +138,24 @@ async function scrapeDate(date) {
 
   // 数据源按顺序尝试：主源 → govopendata直连 → 代理1(allorigins) → 代理2(jina)
   // govopendata 对机房IP有 Cloudflare JS 质询(403)，机房环境需走代理
+  // jina 拒绝类浏览器请求头(403)，需用极简头
   const govUrl = buildGovUrl(date);
   const sources = [
     { name: 'mrxwlb', url: buildUrl(date), toMd: htmlToMarkdown },
     { name: 'govopendata', url: govUrl, toMd: govHtmlToMarkdown },
-    { name: 'govopendata-proxy', url: `https://api.allorigins.win/raw?url=${encodeURIComponent(govUrl)}`, toMd: govHtmlToMarkdown },
-    { name: 'govopendata-jina', url: `https://r.jina.ai/${govUrl}`, toMd: jinaToMarkdown },
+    {
+      name: 'govopendata-proxy',
+      url: `https://api.allorigins.win/raw?url=${encodeURIComponent(govUrl)}`,
+      toMd: govHtmlToMarkdown,
+      timeout: 45000,
+    },
+    {
+      name: 'govopendata-jina',
+      url: `https://r.jina.ai/${govUrl}`,
+      toMd: jinaToMarkdown,
+      timeout: 30000,
+      rawHeaders: { 'User-Agent': 'Mozilla/5.0', 'Accept': '*/*' },
+    },
   ];
 
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -155,7 +167,11 @@ async function scrapeDate(date) {
       const retryNote = attempt > 1 ? ` (retry ${attempt}/${MAX_ATTEMPTS})` : '';
       console.log(`Fetching: ${dateStr} -> ${source.url} (${source.name})${retryNote}`);
       try {
-        const res = await fetch(source.url);
+        const res = await fetch(source.url, {
+          headers: source.headers,
+          rawHeaders: source.rawHeaders,
+          timeout: source.timeout,
+        });
         if (!res.ok) {
           console.log(`  HTTP ${res.status}`);
           if (attempt < MAX_ATTEMPTS) { await sleep(5000 * attempt); continue; }
