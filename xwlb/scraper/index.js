@@ -2,6 +2,7 @@ import * as cheerio from 'cheerio';
 import { fetch } from './fetch.js';
 import fs from 'node:fs';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 const BASE_URL = 'http://mrxwlb.com';
 const GOV_BASE_URL = 'https://cn.govopendata.com/xinwenlianbo';
@@ -19,6 +20,13 @@ function buildGovUrl(date) {
   const m = String(date.getMonth() + 1).padStart(2, '0');
   const d = String(date.getDate()).padStart(2, '0');
   return `${GOV_BASE_URL}/${y}${m}${d}/`;
+}
+
+function buildBaidayaUrl(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `https://baidaya.cn/api/xinwenlianbo/${y}-${m}-${d}`;
 }
 
 function htmlToMarkdown(html, dateStr) {
@@ -130,19 +138,52 @@ function jinaToMarkdown(text, dateStr) {
   return lines.join('\n').replace(/\n{3,}/g, '\n\n').trim() + '\n';
 }
 
+function baidayaToMarkdown(text, dateStr) {
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    return null;
+  }
+  const content = data && data.data && data.data.content;
+  if (!content) return null;
+
+  const lines = [];
+  lines.push(`# ${dateStr} 新闻联播文字版`);
+  lines.push('');
+  lines.push(`> 来源：[baidaya.cn 新闻联播](https://baidaya.cn/xinwenlianbo)`);
+  lines.push('');
+
+  const paras = content.split(/\n{2,}/).map((s) => s.trim()).filter(Boolean);
+  for (const p of paras) {
+    if (/请不吝点赞|打赏支持明镜/.test(p)) continue;
+    const m = p.match(/^【(.+?)】$/);
+    if (m) {
+      lines.push(`## ${m[1]}`);
+      lines.push('');
+    } else {
+      lines.push(p);
+      lines.push('');
+    }
+  }
+
+  return lines.join('\n').replace(/\n{3,}/g, '\n\n').trim() + '\n';
+}
+
 async function scrapeDate(date) {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, '0');
   const d = String(date.getDate()).padStart(2, '0');
   const dateStr = `${y}年${m}月${d}日`;
 
-  // 数据源按顺序尝试：主源 → govopendata直连 → 代理1(allorigins) → 代理2(jina)
+  // 数据源按顺序尝试：主源 → govopendata直连 → baidaya → 代理1(allorigins) → 代理2(jina)
   // govopendata 对机房IP有 Cloudflare JS 质询(403)，机房环境需走代理
   // jina 拒绝类浏览器请求头(403)，需用极简头
   const govUrl = buildGovUrl(date);
   const sources = [
     { name: 'mrxwlb', url: buildUrl(date), toMd: htmlToMarkdown },
     { name: 'govopendata', url: govUrl, toMd: govHtmlToMarkdown },
+    { name: 'baidaya', url: buildBaidayaUrl(date), toMd: baidayaToMarkdown },
     {
       name: 'govopendata-proxy',
       url: `https://api.allorigins.win/raw?url=${encodeURIComponent(govUrl)}`,
@@ -254,4 +295,9 @@ async function main() {
   }
 }
 
-main().catch(console.error);
+const isDirectRun = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+if (isDirectRun) {
+  main().catch(console.error);
+}
+
+export { htmlToMarkdown, govHtmlToMarkdown, jinaToMarkdown, baidayaToMarkdown };
