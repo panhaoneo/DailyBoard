@@ -125,25 +125,37 @@ async function scrapeDate(date) {
     { name: 'govopendata', url: buildGovUrl(date), toMd: govHtmlToMarkdown },
   ];
 
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  const MAX_ATTEMPTS = 3;
+
   for (const source of sources) {
-    console.log(`Fetching: ${dateStr} -> ${source.url} (${source.name})`);
-    try {
-      const res = await fetch(source.url);
-      if (!res.ok) {
-        console.log(`  HTTP ${res.status}, trying next source`);
-        continue;
+    let md = null;
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      const retryNote = attempt > 1 ? ` (retry ${attempt}/${MAX_ATTEMPTS})` : '';
+      console.log(`Fetching: ${dateStr} -> ${source.url} (${source.name})${retryNote}`);
+      try {
+        const res = await fetch(source.url);
+        if (!res.ok) {
+          console.log(`  HTTP ${res.status}`);
+          if (attempt < MAX_ATTEMPTS) { await sleep(5000 * attempt); continue; }
+          break;
+        }
+        const html = await res.text();
+        md = source.toMd(html, dateStr);
+        if (!md) {
+          console.log('  No content found');
+          if (attempt < MAX_ATTEMPTS) { await sleep(5000 * attempt); continue; }
+          break;
+        }
+        console.log(`  OK from ${source.name} (${md.length} chars)`);
+        return { dateStr, md, slug: `${y}-${m}-${d}` };
+      } catch (err) {
+        console.error(`  Error: ${err.message}`);
+        if (attempt < MAX_ATTEMPTS) { await sleep(5000 * attempt); continue; }
+        break;
       }
-      const html = await res.text();
-      const md = source.toMd(html, dateStr);
-      if (!md) {
-        console.log('  No content found, trying next source');
-        continue;
-      }
-      console.log(`  OK from ${source.name} (${md.length} chars)`);
-      return { dateStr, md, slug: `${y}-${m}-${d}` };
-    } catch (err) {
-      console.error(`  Error: ${err.message}, trying next source`);
     }
+    console.log(`  Source ${source.name} exhausted, trying next source`);
   }
 
   console.log('  All sources failed, skipping');

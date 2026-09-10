@@ -6,14 +6,23 @@ import http from 'node:http';
 // rather than globally. If the site fixes its cert, set this back to true.
 const TLS_OPTIONS = { rejectUnauthorized: false };
 
+// Cloudflare (cn.govopendata.com) blocks requests with bot-like headers,
+// so send a realistic browser profile by default.
+const DEFAULT_HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+  'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+  'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+  'Cache-Control': 'no-cache',
+  'Pragma': 'no-cache',
+};
+
 export function fetch(url, options = {}) {
   return new Promise((resolve, reject) => {
     const mod = url.startsWith('https') ? https : http;
     const req = mod.get(url, {
       ...TLS_OPTIONS,
       headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; XWLB-Bot/1.0)',
-        'Accept': 'text/html',
+        ...DEFAULT_HEADERS,
         ...options.headers,
       },
     }, (res) => {
