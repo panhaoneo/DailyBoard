@@ -1,0 +1,520 @@
+#!/usr/bin/env python3
+"""
+数据跟踪模块 - 个股关键指标与事件跟踪
+
+- 读取 stocks/*.json 配置（个股信息 + 需要跟踪的指标/事件）
+- 自动抓取可获取的数据：
+    - 东方财富：个股行情、单季净利（财报）
+    - 上海航运交易所：CTFI CT1（中东湾-中国宁波 VLCC）运价/TCE 参考
+- 生成 docs/index.html 与 docs/<股票代码>.html
+
+更新节奏：由指标频率决定（当前最高频为周度），工作流每周一运行，
+事件/季度/年度类指标在页面上按频率标记"待更新"。
+"""
+
+import os
+import re
+import json
+import glob
+from datetime import datetime, date, timedelta
+from zoneinfo import ZoneInfo
+
+import requests
+
+ROOT = os.path.dirname(os.path.abspath(__file__))
+STOCKS_DIR = os.path.join(ROOT, "stocks")
+DOCS_DIR = os.path.join(ROOT, "docs")
+
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+}
+
+FREQ_LABEL = {
+    "weekly": "周",
+    "monthly": "月",
+    "quarterly": "季",
+    "half_yearly": "半年",
+    "yearly": "年度",
+    "event": "事件",
+}
+FREQ_DAYS = {
+    "weekly": 7,
+    "monthly": 31,
+    "quarterly": 92,
+    "half_yearly": 184,
+    "yearly": 366,
+}
+
+
+def now_bj():
+    return datetime.now(ZoneInfo("Asia/Shanghai"))
+
+
+def _safe_float(val, default=None):
+    if val is None or val == "-" or val == "":
+        return default
+    try:
+        return float(val)
+    except (ValueError, TypeError):
+        return default
+
+
+# ============================================================
+# 数据抓取
+# ============================================================
+
+def fetch_quote(market):
+    """东方财富个股行情: market 形如 1.601872"""
+    try:
+        url = (
+            f"https://push2.eastmoney.com/api/qt/stock/get"
+            f"?secid={market}&fields=f43,f57,f58,f170,f169"
+        )
+        resp = requests.get(url, headers=HEADERS, timeout=10)
+        data = resp.json().get("data") or {}
+        price = _safe_float(data.get("f43"))
+        chg = _safe_float(data.get("f170"))
+        if price is None:
+            return None
+        return {
+            "price": round(price / 100, 2),
+            "change_pct": round(chg / 100, 2) if chg is not None else None,
+        }
+    except Exception as e:
+        print(f"  [!] 行情获取失败: {e}")
+        return None
+
+
+def fetch_em_quarterly(code):
+    """
+    东方财富业绩报表 -> 单季净利序列
+    返回: {"latest": {...}, "series": [最近8个季度], "qoq": 环比%}
+    """
+    try:
+        url = (
+            "https://datacenter-web.eastmoney.com/api/data/v1/get"
+            "?reportName=RPT_LICO_FN_CPD&columns=ALL"
+            f"&filter=(SECURITY_CODE%3D%22{code}%22)"
+            "&pageSize=12&sortColumns=REPORTDATE&sortTypes=-1"
+        )
+        resp = requests.get(url, headers=HEADERS, timeout=15)
+        rows = ((resp.json().get("result") or {}).get("data")) or []
+        if not rows:
+            return None
+
+        # 按报告期升序整理
+        reports = []
+        for r in rows:
+            dt_str = (r.get("REPORTDATE") or "")[:10]
+            net = _safe_float(r.get("PARENT_NETPROFIT"))
+            if not dt_str or net is None:
+                continue
+            reports.append({"date": dt_str, "cum": net})
+        reports.sort(key=lambda x: x["date"])
+
+        # 计算单季净利
+        series = []
+        prev_cum_by_year = {}
+        prev_date = None
+        for rep in reports:
+            y = int(rep["date"][:4])
+            q = (int(rep["date"][5:7]) - 1) // 3 + 1
+            if q == 1 or y not in prev_cum_by_year:
+                single = rep["cum"]
+            else:
+                single = rep["cum"] - prev_cum_by_year[y]
+            prev_cum_by_year[y] = rep["cum"]
+            prev_date = rep["date"]
+            series.append({
+                "date": rep["date"],
+                "year": y,
+                "quarter": q,
+                "single": single,
+                "cum": rep["cum"],
+            })
+
+        if not series:
+            return None
+
+        latest = series[-1]
+        qoq = None
+        if len(series) >= 2 and series[-2]["single"] not in (0, None):
+            qoq = round((latest["single"] - series[-2]["single"]) / abs(series[-2]["single"]) * 100, 1)
+
+        return {
+            "latest": latest,
+            "series": series[-8:],
+            "qoq": qoq,
+        }
+    except Exception as e:
+        print(f"  [!] 财报获取失败: {e}")
+        return None
+
+
+def fetch_sse_ctfi_ct1():
+    """
+    上海航运交易所 CTFI - CT1（中东湾拉斯坦努拉-中国宁波 270000MT VLCC）
+    返回: {"date": ..., "ws": ..., "usd_per_ton": ..., "tce_std": ..., "tce_eco": ...}
+    """
+    try:
+        s = requests.Session()
+        s.headers.update(HEADERS)
+        r = s.get("http://www.sse.net.cn/index/singleIndex?indexType=ctfi", timeout=15)
+        token_m = re.search(r'name="CSRFToken" value="([^"]+)"', r.text)
+        token = token_m.group(1) if token_m else ""
+        r2 = s.post(
+            "http://www.sse.net.cn/index/singleIndex?indexType=ctfi",
+            data={"CSRFToken": token, "date": date.today().isoformat()},
+            timeout=15,
+        )
+        html = r2.text
+
+        date_m = re.search(r"CHINA IMPORT CRUDE OIL TANKER FREIGHT INDEX.*?(\d{4}-\d{2}-\d{2})", html, re.S)
+        data_date = date_m.group(1) if date_m else None
+
+        tbl = re.search(r"<table[^>]*>.*?</table>", html, re.S)
+        if not tbl:
+            return None
+        rows = re.findall(r"<tr[^>]*>(.*?)</tr>", tbl.group(0), re.S)
+        cells = []
+        for row in rows:
+            cs = re.findall(r"<t[dh][^>]*>(.*?)</t[dh]>", row, re.S)
+            cs = [re.sub(r"<[^>]+>", "", c).replace("\xa0", " ").strip() for c in cs]
+            cells.append(cs)
+
+        result = {"date": data_date}
+        for i, cs in enumerate(cells):
+            if cs and "(CT1)" in cs[0] and "中东湾" in cs[0]:
+                for sub in cells[i + 1:i + 8]:
+                    if not sub or len(sub) < 2:
+                        break
+                    unit, val = sub[0], _safe_float(sub[1])
+                    if unit == "WS":
+                        result["ws"] = val
+                    elif unit == "美元/吨":
+                        result["usd_per_ton"] = val
+                    elif unit == "美元/天(标准航速)":
+                        result["tce_std"] = val
+                    elif unit == "美元/天(经济航速)":
+                        result["tce_eco"] = val
+                    elif "CT" in unit:  # 下一个航线，结束
+                        break
+                break
+        return result if result.get("tce_std") or result.get("ws") else None
+    except Exception as e:
+        print(f"  [!] 上海航交所数据获取失败: {e}")
+        return None
+
+
+AUTO_FETCHERS = {
+    "sse_ctfi_ct1": fetch_sse_ctfi_ct1,
+    "em_quarterly": fetch_em_quarterly,
+}
+
+
+# ============================================================
+# 页面渲染
+# ============================================================
+
+def fmt_amount(val):
+    """亿元格式化"""
+    if val is None:
+        return "-"
+    return f"{val / 1e8:.2f} 亿"
+
+
+def freshness(indicator):
+    """按频率检查手动更新是否过期，返回 (状态label, css class)"""
+    freq = indicator.get("freq", "event")
+    updated = indicator.get("manual_updated")
+    if freq == "event" or not updated:
+        return None
+    try:
+        upd = datetime.strptime(updated, "%Y-%m-%d").date()
+    except ValueError:
+        return None
+    limit = FREQ_DAYS.get(freq)
+    if limit and (date.today() - upd).days > limit:
+        return (f"待更新（{FREQ_LABEL.get(freq, freq)}度）", "warn")
+    return None
+
+
+def render_indicator_cell(ind, auto_data):
+    """渲染指标的"最新数据/状态"单元格"""
+    parts = []
+
+    manual_val = ind.get("manual_value")
+    manual_upd = ind.get("manual_updated")
+    unit = ind.get("unit", "")
+
+    if manual_val not in (None, ""):
+        val_txt = f"{manual_val}{unit}" if unit else str(manual_val)
+        parts.append(
+            f'<div class="value">{val_txt}</div>'
+            f'<div class="sub">填报: {manual_upd or "-"}</div>'
+        )
+
+    auto_ref = ind.get("auto_ref")
+    ref = auto_data.get(auto_ref) if auto_ref else None
+
+    if auto_ref == "sse_ctfi_ct1":
+        if ref:
+            tce = ref.get("tce_std")
+            tce_txt = f"{tce:,.0f} 美元/天" if tce else "-"
+            parts.append(
+                f'<div class="sub">参考（上海航交所 CT1 标准航速 TCE）:<br>'
+                f'{tce_txt} · WS {ref.get("ws", "-")} · {ref.get("usd_per_ton", "-")} 美元/吨'
+                f'（{ref.get("date", "-")}）</div>'
+            )
+        else:
+            parts.append('<div class="sub">参考数据获取失败</div>')
+    elif auto_ref == "em_quarterly":
+        if ref:
+            latest = ref["latest"]
+            qoq = ref.get("qoq")
+            qoq_txt = f"{qoq:+.1f}%" if qoq is not None else "-"
+            warn = ' <span class="warn">⚠ 环比负增长</span>' if (qoq is not None and qoq < 0) else ""
+            parts.append(
+                f'<div class="value">{latest["year"]}Q{latest["quarter"]} 单季净利 {fmt_amount(latest["single"])}</div>'
+                f'<div class="sub">环比 {qoq_txt} · 报告期 {latest["date"]}{warn}</div>'
+            )
+        else:
+            parts.append('<div class="sub">财报数据获取失败</div>')
+    else:
+        # 事件/人工跟踪类
+        status = ind.get("status")
+        if status:
+            parts.append(
+                f'<div class="value">{status}</div>'
+                f'<div class="sub">更新: {manual_upd or "-"}</div>'
+            )
+        else:
+            parts.append('<div class="sub">待跟踪</div>')
+
+    fresh = freshness(ind)
+    if fresh:
+        parts.append(f'<div class="warn">{fresh[0]}</div>')
+
+    if not parts:
+        parts.append('<div class="sub">-</div>')
+    return "\n".join(parts)
+
+
+def render_stock_page(stock, auto_data):
+    code = stock["code"]
+    name = stock["name"]
+    quote = auto_data.get("em_quote")
+    build_time = now_bj().strftime("%Y-%m-%d %H:%M")
+
+    quote_html = ""
+    if quote:
+        cls = "up" if (quote["change_pct"] or 0) > 0 else "down" if (quote["change_pct"] or 0) < 0 else "flat"
+        sign = "+" if (quote["change_pct"] or 0) > 0 else ""
+        quote_html = f'<span class="quote-price">{quote["price"]}</span> <span class="{cls}">{sign}{quote["change_pct"]}%</span>'
+
+    ind_rows = ""
+    for ind in stock.get("indicators", []):
+        freq_label = FREQ_LABEL.get(ind.get("freq", "event"), ind.get("freq", "-"))
+        cell = render_indicator_cell(ind, auto_data)
+        ind_rows += f"""
+            <tr>
+                <td class="type">{ind.get("type", "")}</td>
+                <td class="name">{ind.get("name", "")}</td>
+                <td class="why">{ind.get("why", "")}</td>
+                <td>{freq_label}</td>
+                <td class="threshold">{ind.get("threshold", "")}</td>
+                <td class="scenario">{ind.get("scenario", "")}</td>
+                <td class="data">{cell}</td>
+            </tr>"""
+
+    # 财报明细（em_quarterly 存在时）
+    fin_section = ""
+    q = auto_data.get("em_quarterly")
+    if q:
+        fin_rows = ""
+        for item in reversed(q["series"]):
+            fin_rows += (
+                f'<tr><td>{item["year"]}Q{item["quarter"]}</td>'
+                f'<td>{item["date"]}</td>'
+                f'<td>{fmt_amount(item["single"])}</td>'
+                f'<td>{fmt_amount(item["cum"])}</td></tr>'
+            )
+        fin_section = f"""
+    <div class="section">
+        <h2>财报明细（单季净利）</h2>
+        <table class="fin-table">
+            <thead><tr><th>季度</th><th>报告期</th><th>单季净利</th><th>累计净利</th></tr></thead>
+            <tbody>{fin_rows}</tbody>
+        </table>
+    </div>"""
+
+    events = stock.get("events", [])
+    if events:
+        ev_items = "".join(
+            f'<li><span class="ev-date">{e.get("date", "")}</span> {e.get("text", "")}</li>'
+            for e in sorted(events, key=lambda x: x.get("date", ""), reverse=True)
+        )
+        events_html = f'<ul class="events">{ev_items}</ul>'
+    else:
+        events_html = '<p class="sub">暂无事件记录（可在 stocks/{0}.json 的 events 中追加）</p>'.format(code)
+
+    return f"""<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{name}（{code}）数据跟踪</title>
+<style>
+:root {{ --bg: #f0f2f5; --card: #fff; --fg: #333; --muted: #888; --border: #eef2f7; --accent: #1a1a2e; }}
+* {{ box-sizing: border-box; margin: 0; padding: 0; }}
+body {{ font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background: var(--bg); color: var(--fg); line-height: 1.7; padding: 20px; }}
+.container {{ max-width: 1100px; margin: 0 auto; }}
+.header {{ background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); color: #fff; padding: 28px 36px; border-radius: 12px; margin-bottom: 20px; }}
+.header h1 {{ font-size: 26px; margin-bottom: 6px; }}
+.header .meta {{ font-size: 14px; opacity: 0.85; }}
+.header .quote-price {{ font-size: 22px; font-weight: 700; }}
+.header .up {{ color: #ff7675; font-weight: 700; }}
+.header .down {{ color: #55efc4; font-weight: 700; }}
+.header .flat {{ opacity: 0.8; }}
+.header .subtitle {{ font-size: 13px; opacity: 0.75; margin-top: 8px; }}
+.section {{ background: var(--card); border-radius: 12px; padding: 22px 28px; margin-bottom: 18px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }}
+.section h2 {{ font-size: 18px; color: var(--accent); margin-bottom: 14px; padding-bottom: 8px; border-bottom: 2px solid var(--border); }}
+table {{ width: 100%; border-collapse: collapse; font-size: 13.5px; }}
+th, td {{ padding: 9px 10px; text-align: center; border-bottom: 1px solid var(--border); vertical-align: top; }}
+th {{ background: #f8f9fb; color: #555; font-weight: 600; font-size: 12.5px; }}
+td.type {{ white-space: nowrap; color: #555; }}
+td.name {{ text-align: left; font-weight: 600; }}
+td.why {{ text-align: left; color: var(--muted); font-size: 12.5px; }}
+td.data {{ text-align: left; min-width: 200px; }}
+td.data .value {{ font-weight: 600; }}
+td.data .sub {{ color: var(--muted); font-size: 12px; margin-top: 2px; }}
+.warn {{ color: #e67e22; font-size: 12px; margin-top: 2px; }}
+.fin-table td, .fin-table th {{ text-align: center; }}
+.events {{ list-style: none; }}
+.events li {{ padding: 8px 0; border-bottom: 1px dashed var(--border); }}
+.ev-date {{ color: var(--muted); font-size: 12.5px; margin-right: 8px; }}
+.footer {{ text-align: center; color: var(--muted); font-size: 12px; padding: 18px; }}
+a {{ color: #2980b9; text-decoration: none; }}
+a:hover {{ text-decoration: underline; }}
+</style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>{name} <span style="font-size:0.6em;opacity:0.7">{code}</span></h1>
+        <div class="meta">{quote_html}</div>
+        <div class="subtitle">{stock.get("summary", "")}</div>
+        <div class="subtitle">{stock.get("sensitivity_note", "")}</div>
+    </div>
+
+    <div class="section">
+        <h2>指标与事件跟踪</h2>
+        <table>
+            <thead>
+                <tr><th>类型</th><th>指标/事件</th><th>为什么重要</th><th>频率</th><th>触发阈值</th><th>影响情景</th><th>最新数据/状态</th></tr>
+            </thead>
+            <tbody>{ind_rows}
+            </tbody>
+        </table>
+    </div>
+
+    {fin_section}
+
+    <div class="section">
+        <h2>事件记录</h2>
+        {events_html}
+    </div>
+
+    <div class="footer">
+        构建时间: {build_time}（北京时间） · 行情/财报: 东方财富 · 运价参考: 上海航运交易所 CTFI<br>
+        <a href="index.html">← 返回跟踪列表</a>
+    </div>
+</div>
+</body>
+</html>"""
+
+
+def render_index(stocks):
+    build_time = now_bj().strftime("%Y-%m-%d %H:%M")
+
+    cards = ""
+    for stock in stocks:
+        ind_count = len(stock.get("indicators", []))
+        auto_count = sum(1 for i in stock.get("indicators", []) if i.get("auto_ref"))
+        cards += f"""
+        <a class="card" href="{stock["code"]}.html">
+            <h2>{stock["name"]} <span class="code">{stock["code"]}</span></h2>
+            <p>{stock.get("summary", "")}</p>
+            <p class="meta">跟踪 {ind_count} 项指标/事件 · {auto_count} 项自动抓取</p>
+        </a>"""
+
+    return f"""<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>数据跟踪</title>
+<style>
+* {{ box-sizing: border-box; margin: 0; padding: 0; }}
+body {{ font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background: #f0f2f5; color: #333; line-height: 1.7; padding: 32px 20px; }}
+.container {{ max-width: 800px; margin: 0 auto; }}
+h1 {{ font-size: 26px; color: #1a1a2e; margin-bottom: 6px; }}
+.desc {{ color: #888; font-size: 13px; margin-bottom: 22px; }}
+.card {{ display: block; background: #fff; border-radius: 12px; padding: 22px 26px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); text-decoration: none; color: inherit; transition: transform 0.15s; }}
+.card:hover {{ transform: translateY(-3px); box-shadow: 0 4px 16px rgba(0,0,0,0.1); }}
+.card h2 {{ font-size: 19px; color: #1a1a2e; margin-bottom: 6px; }}
+.card .code {{ font-size: 13px; color: #888; font-weight: 400; }}
+.card p {{ color: #666; font-size: 13.5px; }}
+.card .meta {{ color: #999; font-size: 12.5px; margin-top: 6px; }}
+.footer {{ text-align: center; color: #999; font-size: 12px; padding: 20px; }}
+</style>
+</head>
+<body>
+<div class="container">
+    <h1>数据跟踪</h1>
+    <p class="desc">按个股跟踪关键指标与事件，更新节奏由指标频率决定 · 构建: {build_time}（北京时间）</p>
+    {cards}
+    <div class="footer">数据来源: 东方财富、上海航运交易所（免费公开数据）</div>
+</div>
+</body>
+</html>"""
+
+
+def main():
+    os.makedirs(DOCS_DIR, exist_ok=True)
+    stock_files = sorted(glob.glob(os.path.join(STOCKS_DIR, "*.json")))
+    if not stock_files:
+        print("未找到任何个股配置（monitor/stocks/*.json）")
+        return
+
+    stocks = []
+    for path in stock_files:
+        with open(path, encoding="utf-8") as f:
+            stock = json.load(f)
+        print(f"[跟踪] {stock['name']}（{stock['code']}）")
+
+        auto_data = {}
+        print("  获取行情...")
+        auto_data["em_quote"] = fetch_quote(stock["market"])
+        if any(i.get("auto_ref") == "em_quarterly" for i in stock.get("indicators", [])):
+            print("  获取财报...")
+            auto_data["em_quarterly"] = fetch_em_quarterly(stock["code"])
+        if any(i.get("auto_ref") == "sse_ctfi_ct1" for i in stock.get("indicators", [])):
+            print("  获取上海航交所 CTFI...")
+            auto_data["sse_ctfi_ct1"] = fetch_sse_ctfi_ct1()
+
+        html = render_stock_page(stock, auto_data)
+        out_path = os.path.join(DOCS_DIR, f"{stock['code']}.html")
+        with open(out_path, "w", encoding="utf-8") as f:
+            f.write(html)
+        print(f"  已生成 {out_path}")
+        stocks.append(stock)
+
+    index_html = render_index(stocks)
+    with open(os.path.join(DOCS_DIR, "index.html"), "w", encoding="utf-8") as f:
+        f.write(index_html)
+    print(f"已生成 {os.path.join(DOCS_DIR, 'index.html')}")
+
+
+if __name__ == "__main__":
+    main()

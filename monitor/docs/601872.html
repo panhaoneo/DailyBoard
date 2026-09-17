@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>招商轮船（601872）数据跟踪</title>
+<style>
+:root { --bg: #f0f2f5; --card: #fff; --fg: #333; --muted: #888; --border: #eef2f7; --accent: #1a1a2e; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background: var(--bg); color: var(--fg); line-height: 1.7; padding: 20px; }
+.container { max-width: 1100px; margin: 0 auto; }
+.header { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); color: #fff; padding: 28px 36px; border-radius: 12px; margin-bottom: 20px; }
+.header h1 { font-size: 26px; margin-bottom: 6px; }
+.header .meta { font-size: 14px; opacity: 0.85; }
+.header .quote-price { font-size: 22px; font-weight: 700; }
+.header .up { color: #ff7675; font-weight: 700; }
+.header .down { color: #55efc4; font-weight: 700; }
+.header .flat { opacity: 0.8; }
+.header .subtitle { font-size: 13px; opacity: 0.75; margin-top: 8px; }
+.section { background: var(--card); border-radius: 12px; padding: 22px 28px; margin-bottom: 18px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+.section h2 { font-size: 18px; color: var(--accent); margin-bottom: 14px; padding-bottom: 8px; border-bottom: 2px solid var(--border); }
+table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+th, td { padding: 9px 10px; text-align: center; border-bottom: 1px solid var(--border); vertical-align: top; }
+th { background: #f8f9fb; color: #555; font-weight: 600; font-size: 12.5px; }
+td.type { white-space: nowrap; color: #555; }
+td.name { text-align: left; font-weight: 600; }
+td.why { text-align: left; color: var(--muted); font-size: 12.5px; }
+td.data { text-align: left; min-width: 200px; }
+td.data .value { font-weight: 600; }
+td.data .sub { color: var(--muted); font-size: 12px; margin-top: 2px; }
+.warn { color: #e67e22; font-size: 12px; margin-top: 2px; }
+.fin-table td, .fin-table th { text-align: center; }
+.events { list-style: none; }
+.events li { padding: 8px 0; border-bottom: 1px dashed var(--border); }
+.ev-date { color: var(--muted); font-size: 12.5px; margin-right: 8px; }
+.footer { text-align: center; color: var(--muted); font-size: 12px; padding: 18px; }
+a { color: #2980b9; text-decoration: none; }
+a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>招商轮船 <span style="font-size:0.6em;opacity:0.7">601872</span></h1>
+        <div class="meta"><span class="quote-price">21.85</span> <span class="up">+10.02%</span></div>
+        <div class="subtitle">油运（VLCC）+ 干散货 + 集运（安通控股）综合航运平台，油运利润对 VLCC TCE 高度敏感</div>
+        <div class="subtitle">VLCC TCE 每 1 万美元/天 ≈ 12.11 亿元/年</div>
+    </div>
+
+    <div class="section">
+        <h2>指标与事件跟踪</h2>
+        <table>
+            <thead>
+                <tr><th>类型</th><th>指标/事件</th><th>为什么重要</th><th>频率</th><th>触发阈值</th><th>影响情景</th><th>最新数据/状态</th></tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td class="type">运价</td>
+                <td class="name">VLCC TD3C 日租金</td>
+                <td class="why">利润第一驱动（每 1 万美元/天 = 12.11 亿/年）</td>
+                <td>周</td>
+                <td class="threshold">跌破 5 万美元/天</td>
+                <td class="scenario">乐观 → 悲观</td>
+                <td class="data"><div class="sub">参考（上海航交所 CT1 标准航速 TCE）:<br>1,092,572 美元/天 · WS 1027.97 · 207.75 美元/吨（2026-09-16）</div></td>
+            </tr>
+            <tr>
+                <td class="type">地缘</td>
+                <td class="name">霍尔木兹海峡通行量与局势</td>
+                <td class="why">决定有效运力收缩的持续性</td>
+                <td>事件</td>
+                <td class="threshold">通行恢复常态</td>
+                <td class="scenario">乐观 → 中性/悲观</td>
+                <td class="data"><div class="sub">待跟踪</div></td>
+            </tr>
+            <tr>
+                <td class="type">财报</td>
+                <td class="name">Q3/Q4 单季净利</td>
+                <td class="why">验证 H2 旺季兑现度</td>
+                <td>季</td>
+                <td class="threshold">Q3 环比负增长</td>
+                <td class="scenario">中性 → 悲观</td>
+                <td class="data"><div class="value">2026Q2 单季净利 41.96 亿</div><div class="sub">环比 +51.8% · 报告期 2026-06-30</div></td>
+            </tr>
+            <tr>
+                <td class="type">供给</td>
+                <td class="name">新船交付节奏（在建 76 艘、VLCC 订单 18 条）</td>
+                <td class="why">2027 年后的运力过剩压力</td>
+                <td>半年</td>
+                <td class="threshold">交付提前/订单激增</td>
+                <td class="scenario">中性 → 悲观（远期）</td>
+                <td class="data"><div class="sub">待跟踪</div></td>
+            </tr>
+            <tr>
+                <td class="type">公司</td>
+                <td class="name">安通控股董事会改组与控制权交割</td>
+                <td class="why">第二增长曲线兑现</td>
+                <td>事件</td>
+                <td class="threshold">交割完成/终止</td>
+                <td class="scenario">中性 → 乐观/回退</td>
+                <td class="data"><div class="sub">待跟踪</div></td>
+            </tr>
+            <tr>
+                <td class="type">股东回报</td>
+                <td class="name">三年回报规划落地（分红+回购）</td>
+                <td class="why">估值下限支撑</td>
+                <td>年度</td>
+                <td class="threshold">分红率低于 40%</td>
+                <td class="scenario">全部（估值）</td>
+                <td class="data"><div class="sub">待跟踪</div></td>
+            </tr>
+            <tr>
+                <td class="type">治理</td>
+                <td class="name">内控整改与信披质量</td>
+                <td class="why">警示函后续，影响财务可信度</td>
+                <td>年度</td>
+                <td class="threshold">再次被监管</td>
+                <td class="scenario">—</td>
+                <td class="data"><div class="sub">待跟踪</div></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    
+    <div class="section">
+        <h2>财报明细（单季净利）</h2>
+        <table class="fin-table">
+            <thead><tr><th>季度</th><th>报告期</th><th>单季净利</th><th>累计净利</th></tr></thead>
+            <tbody><tr><td>2026Q2</td><td>2026-06-30</td><td>41.96 亿</td><td>69.60 亿</td></tr><tr><td>2026Q1</td><td>2026-03-31</td><td>27.63 亿</td><td>27.63 亿</td></tr><tr><td>2025Q4</td><td>2025-12-31</td><td>27.12 亿</td><td>60.12 亿</td></tr><tr><td>2025Q3</td><td>2025-09-30</td><td>11.75 亿</td><td>33.00 亿</td></tr><tr><td>2025Q2</td><td>2025-06-30</td><td>12.59 亿</td><td>21.25 亿</td></tr><tr><td>2025Q1</td><td>2025-03-31</td><td>8.65 亿</td><td>8.65 亿</td></tr><tr><td>2024Q4</td><td>2024-12-31</td><td>17.38 亿</td><td>51.07 亿</td></tr><tr><td>2024Q3</td><td>2024-09-30</td><td>8.72 亿</td><td>33.69 亿</td></tr></tbody>
+        </table>
+    </div>
+
+    <div class="section">
+        <h2>事件记录</h2>
+        <p class="sub">暂无事件记录（可在 stocks/601872.json 的 events 中追加）</p>
+    </div>
+
+    <div class="footer">
+        构建时间: 2026-09-17 14:45（北京时间） · 行情/财报: 东方财富 · 运价参考: 上海航运交易所 CTFI<br>
+        <a href="index.html">← 返回跟踪列表</a>
+    </div>
+</div>
+</body>
+</html>

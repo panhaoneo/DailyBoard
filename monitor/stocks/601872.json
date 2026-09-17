@@ -1,0 +1,81 @@
+{
+  "code": "601872",
+  "name": "招商轮船",
+  "market": "1.601872",
+  "summary": "油运（VLCC）+ 干散货 + 集运（安通控股）综合航运平台，油运利润对 VLCC TCE 高度敏感",
+  "sensitivity_note": "VLCC TCE 每 1 万美元/天 ≈ 12.11 亿元/年",
+  "indicators": [
+    {
+      "type": "运价",
+      "name": "VLCC TD3C 日租金",
+      "why": "利润第一驱动（每 1 万美元/天 = 12.11 亿/年）",
+      "freq": "weekly",
+      "threshold": "跌破 5 万美元/天",
+      "scenario": "乐观 → 悲观",
+      "unit": "万美元/天",
+      "auto_ref": "sse_ctfi_ct1",
+      "manual_value": null,
+      "manual_updated": null
+    },
+    {
+      "type": "地缘",
+      "name": "霍尔木兹海峡通行量与局势",
+      "why": "决定有效运力收缩的持续性",
+      "freq": "event",
+      "threshold": "通行恢复常态",
+      "scenario": "乐观 → 中性/悲观",
+      "status": null,
+      "manual_updated": null
+    },
+    {
+      "type": "财报",
+      "name": "Q3/Q4 单季净利",
+      "why": "验证 H2 旺季兑现度",
+      "freq": "quarterly",
+      "threshold": "Q3 环比负增长",
+      "scenario": "中性 → 悲观",
+      "auto_ref": "em_quarterly"
+    },
+    {
+      "type": "供给",
+      "name": "新船交付节奏（在建 76 艘、VLCC 订单 18 条）",
+      "why": "2027 年后的运力过剩压力",
+      "freq": "half_yearly",
+      "threshold": "交付提前/订单激增",
+      "scenario": "中性 → 悲观（远期）",
+      "status": null,
+      "manual_updated": null
+    },
+    {
+      "type": "公司",
+      "name": "安通控股董事会改组与控制权交割",
+      "why": "第二增长曲线兑现",
+      "freq": "event",
+      "threshold": "交割完成/终止",
+      "scenario": "中性 → 乐观/回退",
+      "status": null,
+      "manual_updated": null
+    },
+    {
+      "type": "股东回报",
+      "name": "三年回报规划落地（分红+回购）",
+      "why": "估值下限支撑",
+      "freq": "yearly",
+      "threshold": "分红率低于 40%",
+      "scenario": "全部（估值）",
+      "status": null,
+      "manual_updated": null
+    },
+    {
+      "type": "治理",
+      "name": "内控整改与信披质量",
+      "why": "警示函后续，影响财务可信度",
+      "freq": "yearly",
+      "threshold": "再次被监管",
+      "scenario": "—",
+      "status": null,
+      "manual_updated": null
+    }
+  ],
+  "events": []
+}

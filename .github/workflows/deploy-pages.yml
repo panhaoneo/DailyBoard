@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
   workflow_run:
-    workflows: ["Daily Market Report", "Daily XWLB Scrape"]
+    workflows: ["Daily Market Report", "Daily XWLB Scrape", "Monitor Update"]
     types: [completed]
   workflow_dispatch:
 
@@ -40,7 +40,7 @@ jobs:
 
       - name: Prepare docs directory
         run: |
-          mkdir -p _site/xwlb _site/market _site/new-things
+          mkdir -p _site/xwlb _site/market _site/new-things _site/monitor
           
           # Copy xwlb docs if exists
           if [ -d "xwlb/docs" ]; then
@@ -55,6 +55,11 @@ jobs:
           # Copy new-things docs if exists
           if [ -d "new-things/docs" ]; then
             cp -r new-things/docs/* _site/new-things/
+          fi
+          
+          # Copy monitor docs if exists
+          if [ -d "monitor/docs" ]; then
+            cp -r monitor/docs/* _site/monitor/
           fi
           
           # Generate root index
@@ -116,9 +121,14 @@ jobs:
                       <p>记录生活中发现的新业态、新产品，一旦发现，紧密跟踪。</p>
                       <a href="new-things/">进入查看</a>
                   </div>
+                  <div class="card">
+                      <h2>数据跟踪</h2>
+                      <p>按个股跟踪关键指标与事件（运价、财报、供给、治理等），自动抓取 + 人工填报，按频率更新。</p>
+                      <a href="monitor/">进入查看</a>
+                  </div>
               </div>
               <div class="footer">
-                  持续更新 | 数据来源：mrxwlb.com、新浪财经、腾讯财经
+                  持续更新 | 数据来源：mrxwlb.com、新浪财经、腾讯财经、同花顺问财、上海航运交易所
               </div>
           </div>
           </body>
