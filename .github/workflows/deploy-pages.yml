@@ -38,6 +38,12 @@ jobs:
         working-directory: new-things
         run: python build.py
 
+      - name: Build monitor site
+        working-directory: monitor
+        run: |
+          pip install -q -r requirements.txt
+          python build.py
+
       - name: Prepare docs directory
         run: |
           mkdir -p _site/xwlb _site/market _site/new-things _site/monitor
