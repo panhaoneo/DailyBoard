@@ -1,0 +1,297 @@
+{
+  "id": "pig-cycle",
+  "title": "猪周期跟踪",
+  "summary": "经典蛛网模型：猪价→利润→补栏→能繁母猪→10-12个月后出栏→猪价。后非瘟时代规模化占比70%+，叠加强逆周期调控：上行周期缩短、下行磨底拉长。以「能繁母猪存栏→生猪存栏→猪价」三变量框架判断周期位置：看能繁是否趋势性去化、生猪存栏与猪价是否反向、名义存栏达标不等于产能出清。",
+  "indicators": [
+    {
+      "type": "产能",
+      "group": "产能端（前瞻指标）",
+      "name": "能繁母猪存栏量",
+      "why": "核心先行指标，决定 10-12 个月后出栏中枢",
+      "lead": "领先 10-12 月",
+      "freq": "quarterly",
+      "threshold": "正常保有量 3750 万头（2026 修订）；绿色区间 3450-3863 万头（92%-103%）",
+      "auto_key": "sow"
+    },
+    {
+      "type": "产能",
+      "group": "产能端（前瞻指标）",
+      "name": "能繁母猪环比变化",
+      "why": "衡量产能去化进度与方向",
+      "lead": "领先 10-12 月",
+      "freq": "monthly",
+      "threshold": "环比转正 = 去化停滞（利空 10 个月后猪价）",
+      "auto_key": "sow_mom"
+    },
+    {
+      "type": "产能",
+      "group": "产能端（前瞻指标）",
+      "name": "新生仔猪数量",
+      "why": "短期出栏的前瞻信号",
+      "lead": "领先 6 月",
+      "freq": "monthly",
+      "threshold": "持续下滑 = 未来供给收缩确认",
+      "manual_value": "持续下滑（2026 年初以来）",
+      "manual_updated": "2026-09"
+    },
+    {
+      "type": "产能",
+      "group": "产能端（前瞻指标）",
+      "name": "淘汰母猪量",
+      "why": "产能出清的直接证据",
+      "lead": "同步/略领先",
+      "freq": "monthly",
+      "threshold": "维持高位 = 出清持续",
+      "manual_value": "处于高位",
+      "manual_updated": "2026-09"
+    },
+    {
+      "type": "供给",
+      "group": "供给端（同步/滞后指标）",
+      "name": "生猪存栏量",
+      "why": "中间变量，受压栏/二次育肥干扰",
+      "lead": "同步",
+      "freq": "quarterly",
+      "threshold": "与猪价反向才是真缺口；同向多为压栏形成的假性缺口",
+      "auto_key": "hog_stock"
+    },
+    {
+      "type": "供给",
+      "group": "供给端（同步/滞后指标）",
+      "name": "生猪出栏量",
+      "why": "直接供给量",
+      "lead": "同步",
+      "freq": "quarterly",
+      "threshold": "同比转降 = 供给收缩",
+      "auto_key": "hog_slaughter"
+    },
+    {
+      "type": "供给",
+      "group": "供给端（同步/滞后指标）",
+      "name": "出栏均重",
+      "why": "当期供应量最直接反映（压栏/降重节奏）",
+      "lead": "同步",
+      "freq": "weekly",
+      "threshold": "回落至正常水平 115-120 公斤 = 出栏加速",
+      "manual_value": "约 123 公斤",
+      "manual_updated": "2026-09"
+    },
+    {
+      "type": "供给",
+      "group": "供给端（同步/滞后指标）",
+      "name": "定点屠宰量",
+      "why": "实际上市量",
+      "lead": "同步",
+      "freq": "monthly",
+      "threshold": "高位回落 = 供给边际收缩",
+      "auto_key": "slaughter"
+    },
+    {
+      "type": "供给",
+      "group": "供给端（同步/滞后指标）",
+      "name": "冻品库容率",
+      "why": "潜在供给压力",
+      "lead": "同步",
+      "freq": "weekly",
+      "threshold": "抬升 = 隐性供给压力，压制反弹高度",
+      "manual_value": "上半年均值 19.09%",
+      "manual_updated": "2026-09"
+    },
+    {
+      "type": "供给",
+      "group": "供给端（同步/滞后指标）",
+      "name": "猪肉进口 / 港口库存",
+      "why": "外部供给补充",
+      "lead": "同步",
+      "freq": "monthly",
+      "threshold": "港口库存持续攀升 = 外部供给压力",
+      "manual_value": "港口库存持续攀升",
+      "manual_updated": "2026-09"
+    },
+    {
+      "type": "价格",
+      "group": "价格端（结果指标）",
+      "name": "生猪出栏均价（外三元）",
+      "why": "最直接的价格信号",
+      "lead": "结果变量",
+      "freq": "daily",
+      "threshold": "跌破行业完全成本（约 12 元/公斤）= 深度亏损区",
+      "auto_key": "hog_price"
+    },
+    {
+      "type": "价格",
+      "group": "价格端（结果指标）",
+      "name": "仔猪价格（7 公斤）",
+      "why": "补栏意愿的风向标",
+      "lead": "领先 6 月",
+      "freq": "weekly",
+      "threshold": "企稳回升 = 补栏意愿修复（周期反转辅助信号）",
+      "auto_key": "piglet"
+    },
+    {
+      "type": "价格",
+      "group": "价格端（结果指标）",
+      "name": "二元母猪价格",
+      "why": "产能扩张意愿",
+      "lead": "同步",
+      "freq": "monthly",
+      "threshold": "止跌回升 = 补栏扩张意愿回暖",
+      "auto_key": "sow_price"
+    },
+    {
+      "type": "价格",
+      "group": "价格端（结果指标）",
+      "name": "生猪期货主力（LH）",
+      "why": "市场远期预期",
+      "lead": "预期变量",
+      "freq": "daily",
+      "threshold": "升水现货 = 远期预期改善",
+      "auto_key": "futures"
+    },
+    {
+      "type": "成本利润",
+      "group": "成本与利润",
+      "name": "猪粮比价",
+      "why": "盈利能力核心指标",
+      "lead": "同步",
+      "freq": "weekly",
+      "threshold": "一级预警 <5:1（过度下跌）；二级预警 <6:1（触发收储）；盈亏平衡 ≈6:1",
+      "auto_key": "ratio"
+    },
+    {
+      "type": "成本利润",
+      "group": "成本与利润",
+      "name": "自繁自养头均利润",
+      "why": "养殖端盈利状况（去化驱动力）",
+      "lead": "同步",
+      "freq": "weekly",
+      "threshold": "持续亏损 = 被动去化加速",
+      "manual_value": "亏损约 90-220 元/头；连续亏损 41 周",
+      "manual_updated": "2026-09"
+    },
+    {
+      "type": "成本利润",
+      "group": "成本与利润",
+      "name": "外购仔猪头均利润",
+      "why": "育肥端盈利状况",
+      "lead": "同步",
+      "freq": "weekly",
+      "threshold": "亏损 = 育肥端去化",
+      "manual_value": "亏损约 150 元/头",
+      "manual_updated": "2026-09"
+    },
+    {
+      "type": "成本利润",
+      "group": "成本与利润",
+      "name": "饲料成本（玉米 / 豆粕）",
+      "why": "成本端压力（与猪价剪刀差）",
+      "lead": "同步",
+      "freq": "daily",
+      "threshold": "上行 = 成本端挤压利润",
+      "auto_key": "feed"
+    },
+    {
+      "type": "成本利润",
+      "group": "成本与利润",
+      "name": "行业完全养殖成本",
+      "why": "行业盈亏线",
+      "lead": "—",
+      "freq": "monthly",
+      "threshold": "≈12 元/公斤；猪价低于此 = 全行业亏损",
+      "manual_value": "约 11.8-12.8 元/公斤",
+      "manual_updated": "2026-09"
+    },
+    {
+      "type": "需求",
+      "group": "需求端",
+      "name": "猪肉批发价 / 白条走货",
+      "why": "终端需求的实时指标",
+      "lead": "同步",
+      "freq": "daily",
+      "threshold": "与猪价背离 = 终端承接力变化",
+      "auto_key": "wholesale"
+    },
+    {
+      "type": "需求",
+      "group": "需求端",
+      "name": "白条肉周价",
+      "why": "批发端价格与同比",
+      "lead": "同步",
+      "freq": "weekly",
+      "threshold": "同比降幅收窄 = 需求边际改善",
+      "auto_key": "baotiao"
+    },
+    {
+      "type": "需求",
+      "group": "需求端",
+      "name": "季节性消费",
+      "why": "开学季 / 双节 / 腌腊 / 春节备货节奏",
+      "lead": "—",
+      "freq": "event",
+      "threshold": "节前备货启动 = 需求脉冲",
+      "manual_value": "开学季/双节备货进行中；后续关注腌腊、春节",
+      "manual_updated": "2026-09"
+    },
+    {
+      "type": "需求",
+      "group": "需求端",
+      "name": "替代品价格（牛羊禽）",
+      "why": "替代效应",
+      "lead": "—",
+      "freq": "monthly",
+      "threshold": "替代品大涨 = 猪肉需求替代性增强"
+    }
+  ],
+  "signals": [
+    {
+      "text": "能繁母猪连续多季度环比下降",
+      "auto_key": "sow_trend"
+    },
+    {
+      "text": "生猪存栏同步转降",
+      "auto_key": "hog_stock_trend"
+    },
+    {
+      "text": "新生仔猪数量持续下行",
+      "status": "pass",
+      "note": "2026 年初以来持续下滑（人工）"
+    },
+    {
+      "text": "淘汰母猪占比维持高位",
+      "status": "pass",
+      "note": "淘汰母猪量处于高位（人工）"
+    },
+    {
+      "text": "行业亏损面持续出清（亏损倒逼产能退出）",
+      "status": "pass",
+      "note": "自繁自养连续 41 周亏损，被动去化持续（2026-09，人工）"
+    },
+    {
+      "text": "猪粮比回升至盈亏平衡线（6:1）以上",
+      "auto_key": "ratio_above_6"
+    },
+    {
+      "text": "出栏均重回落至正常水平（115-120 公斤）",
+      "status": "fail",
+      "note": "约 123 公斤，仍高于正常区间（2026-09，人工）"
+    },
+    {
+      "text": "仔猪价格企稳回升",
+      "auto_key": "piglet_rebound"
+    }
+  ],
+  "events": [
+    {
+      "date": "2026-09-04",
+      "text": "农业农村部：生猪产能调减目标提前至三季度末（政策端加速去化）"
+    },
+    {
+      "date": "2026-07-16",
+      "text": "国家统计局：2026 年二季度末能繁母猪存栏 3780 万头（环比 -3.1%、同比 -6.5%，为正常保有量的 100.8%）"
+    },
+    {
+      "date": "2026-03-02",
+      "text": "2025 年末能繁母猪存栏 3961 万头（同比 -2.87%）"
+    }
+  ]
+}

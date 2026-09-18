@@ -12,6 +12,7 @@ h1 { font-size: 26px; color: #1a1a2e; margin-bottom: 6px; }
 .desc { color: #888; font-size: 13px; margin-bottom: 22px; }
 .card { display: block; background: #fff; border-radius: 12px; padding: 22px 26px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); text-decoration: none; color: inherit; transition: transform 0.15s; }
 .card:hover { transform: translateY(-3px); box-shadow: 0 4px 16px rgba(0,0,0,0.1); }
+.card.theme { border-left: 4px solid #16a085; }
 .card h2 { font-size: 19px; color: #1a1a2e; margin-bottom: 6px; }
 .card .code { font-size: 13px; color: #888; font-weight: 400; }
 .card p { color: #666; font-size: 13.5px; }
@@ -22,14 +23,19 @@ h1 { font-size: 26px; color: #1a1a2e; margin-bottom: 6px; }
 <body>
 <div class="container">
     <h1>数据跟踪</h1>
-    <p class="desc">按个股跟踪关键指标与事件，更新节奏由指标频率决定 · 构建: 2026-09-17 14:49（北京时间）</p>
+    <p class="desc">个股关键指标与事件 + 行业周期主题跟踪 · 更新节奏由指标频率决定 · 构建: 2026-09-18 09:59（北京时间）</p>
     
+        <a class="card theme" href="pig-cycle.html">
+            <h2>猪周期跟踪</h2>
+            <p>经典蛛网模型：猪价→利润→补栏→能繁母猪→10-12个月后出栏→猪价。后非瘟时代规模化占比70%+，叠加强逆周期调控：上行周期缩短、下行磨底拉长。以「能繁母猪存栏→生猪存栏→猪价」三变量框架判断周期位置：看能繁是否趋势性去化、生猪存栏与猪价是否反向、名义存栏达标不等于产能出清。</p>
+            <p class="meta">跟踪 23 项指标 · 13 项自动抓取 · 每日更新</p>
+        </a>
         <a class="card" href="601872.html">
             <h2>招商轮船 <span class="code">601872</span></h2>
             <p>油运（VLCC）+ 干散货 + 集运（安通控股）综合航运平台，油运利润对 VLCC TCE 高度敏感</p>
             <p class="meta">跟踪 7 项指标/事件 · 2 项自动抓取</p>
         </a>
-    <div class="footer">数据来源: 东方财富、上海航运交易所（免费公开数据）</div>
+    <div class="footer">数据来源: 东方财富、上海航运交易所、玄田数据（中国养猪网）、新浪财经、新猪派（免费公开数据）</div>
 </div>
 </body>
 </html>

@@ -2,8 +2,8 @@ name: Monitor Update
 
 on:
   schedule:
-    # 每周一 08:30 北京时间（UTC 00:30）— 由当前最高频指标（VLCC 运价，周度）决定
-    - cron: '30 0 * * 1'
+    # 每日 10:00 北京时间（UTC 02:00）— 由最高频指标（日频猪价/期货，约 9:00 前更新）决定
+    - cron: '0 2 * * *'
   workflow_dispatch:
     inputs:
       full:

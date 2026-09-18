@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
 """
-数据跟踪模块 - 个股关键指标与事件跟踪
+数据跟踪模块 - 个股关键指标与事件跟踪 + 行业周期主题（猪周期）
 
 - 读取 stocks/*.json 配置（个股信息 + 需要跟踪的指标/事件）
+- 读取 themes/*.json 配置（行业周期主题，见 pigcycle.py）
 - 自动抓取可获取的数据：
     - 东方财富：个股行情、单季净利（财报）
     - 上海航运交易所：CTFI CT1（中东湾-中国宁波 VLCC）运价/TCE 参考
-- 生成 docs/index.html 与 docs/<股票代码>.html
+    - 玄田数据/新浪期货/新猪派：猪周期指标（日频猪价饲料、周度仔猪/猪粮比、季度能繁存栏）
+- 生成 docs/index.html、docs/<股票代码>.html、docs/<主题>.html
 
-更新节奏：由指标频率决定（当前最高频为周度），工作流每周一运行，
-事件/季度/年度类指标在页面上按频率标记"待更新"。
+更新节奏：每日运行（最高频指标为日度），低频指标按频率标记数据日期。
 """
 
 import os
@@ -21,8 +22,11 @@ from zoneinfo import ZoneInfo
 
 import requests
 
+import pigcycle
+
 ROOT = os.path.dirname(os.path.abspath(__file__))
 STOCKS_DIR = os.path.join(ROOT, "stocks")
+THEMES_DIR = os.path.join(ROOT, "themes")
 DOCS_DIR = os.path.join(ROOT, "docs")
 
 HEADERS = {
@@ -434,10 +438,18 @@ a:hover {{ text-decoration: underline; }}
 </html>"""
 
 
-def render_index(stocks):
+def render_index(stocks, themes=None):
     build_time = now_bj().strftime("%Y-%m-%d %H:%M")
 
     cards = ""
+    for theme in (themes or []):
+        cards += f"""
+        <a class="card theme" href="{theme["id"]}.html">
+            <h2>{theme["title"]}</h2>
+            <p>{theme.get("summary", "")}</p>
+            <p class="meta">{theme.get("meta", "")}</p>
+        </a>"""
+
     for stock in stocks:
         ind_count = len(stock.get("indicators", []))
         auto_count = sum(1 for i in stock.get("indicators", []) if i.get("auto_ref"))
@@ -462,6 +474,7 @@ h1 {{ font-size: 26px; color: #1a1a2e; margin-bottom: 6px; }}
 .desc {{ color: #888; font-size: 13px; margin-bottom: 22px; }}
 .card {{ display: block; background: #fff; border-radius: 12px; padding: 22px 26px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); text-decoration: none; color: inherit; transition: transform 0.15s; }}
 .card:hover {{ transform: translateY(-3px); box-shadow: 0 4px 16px rgba(0,0,0,0.1); }}
+.card.theme {{ border-left: 4px solid #16a085; }}
 .card h2 {{ font-size: 19px; color: #1a1a2e; margin-bottom: 6px; }}
 .card .code {{ font-size: 13px; color: #888; font-weight: 400; }}
 .card p {{ color: #666; font-size: 13.5px; }}
@@ -472,9 +485,9 @@ h1 {{ font-size: 26px; color: #1a1a2e; margin-bottom: 6px; }}
 <body>
 <div class="container">
     <h1>数据跟踪</h1>
-    <p class="desc">按个股跟踪关键指标与事件，更新节奏由指标频率决定 · 构建: {build_time}（北京时间）</p>
+    <p class="desc">个股关键指标与事件 + 行业周期主题跟踪 · 更新节奏由指标频率决定 · 构建: {build_time}（北京时间）</p>
     {cards}
-    <div class="footer">数据来源: 东方财富、上海航运交易所（免费公开数据）</div>
+    <div class="footer">数据来源: 东方财富、上海航运交易所、玄田数据（中国养猪网）、新浪财经、新猪派（免费公开数据）</div>
 </div>
 </body>
 </html>"""
@@ -483,9 +496,6 @@ h1 {{ font-size: 26px; color: #1a1a2e; margin-bottom: 6px; }}
 def main():
     os.makedirs(DOCS_DIR, exist_ok=True)
     stock_files = sorted(glob.glob(os.path.join(STOCKS_DIR, "*.json")))
-    if not stock_files:
-        print("未找到任何个股配置（monitor/stocks/*.json）")
-        return
 
     stocks = []
     for path in stock_files:
@@ -510,7 +520,14 @@ def main():
         print(f"  已生成 {out_path}")
         stocks.append(stock)
 
-    index_html = render_index(stocks)
+    themes = []
+    for path in sorted(glob.glob(os.path.join(THEMES_DIR, "*.json"))):
+        with open(path, encoding="utf-8") as f:
+            cfg = json.load(f)
+        print(f"[主题] {cfg['title']}")
+        themes.append(pigcycle.build_pig_cycle(cfg, DOCS_DIR))
+
+    index_html = render_index(stocks, themes)
     with open(os.path.join(DOCS_DIR, "index.html"), "w", encoding="utf-8") as f:
         f.write(index_html)
     print(f"已生成 {os.path.join(DOCS_DIR, 'index.html')}")

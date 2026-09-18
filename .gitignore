@@ -1,3 +1,7 @@
 
 # local skillhub installs
 /skills/
+
+# python
+__pycache__/
+*.pyc
