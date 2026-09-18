@@ -51,19 +51,32 @@ def _f(val, default=None):
 # 数据抓取
 # ============================================================
 
-def _post_xt(path, data, retries=3):
+# xt.yangzhu.vip 对部分海外出口网络偶发不可达；连续失败后熔断跳过剩余请求，
+# 避免部署构建被连接超时拖到十几分钟
+_xt_fail_streak = 0
+_XT_TRIP_AFTER = 3
+
+
+def _post_xt(path, data, retries=2):
+    global _xt_fail_streak
+    if _xt_fail_streak >= _XT_TRIP_AFTER:
+        return None
     last_err = None
     for i in range(retries):
         try:
-            resp = requests.post(f"{XT_BASE}{path}", data=data, headers=HEADERS, timeout=25)
+            resp = requests.post(
+                f"{XT_BASE}{path}", data=data, headers=HEADERS, timeout=(5, 15)
+            )
             js = resp.json()
             if js.get("code") == 200:
+                _xt_fail_streak = 0
                 return js.get("data")
             last_err = js.get("msg")
         except Exception as e:
             last_err = e
         if i < retries - 1:
             time.sleep(2 * (i + 1))
+    _xt_fail_streak += 1
     print(f"  [!] 玄田数据 {path} 获取失败: {last_err}")
     return None
 
@@ -95,7 +108,7 @@ def fetch_futures(symbols=("LH0", "C0", "M0")):
         resp = requests.get(
             url,
             headers={**HEADERS, "Referer": "https://finance.sina.com.cn"},
-            timeout=15,
+            timeout=(5, 10),
         )
         text = resp.content.decode("gbk", errors="ignore")
     except Exception as e:
@@ -123,7 +136,7 @@ def fetch_futures_kline(symbol="LH0", n=40):
         f"InnerFuturesNewService.getDailyKLine?symbol={symbol}"
     )
     try:
-        resp = requests.get(url, headers=HEADERS, timeout=20)
+        resp = requests.get(url, headers=HEADERS, timeout=(5, 15))
         m = re.search(r"=\((\[.*\])\);?", resp.text, re.S)
         rows = json.loads(m.group(1))
         out = [(r["d"], _f(r["c"])) for r in rows if r.get("d") and _f(r["c"]) is not None]
@@ -159,7 +172,7 @@ def fetch_xinmunet_sow():
     """
     url = "https://www.xinmunet.com/lab/%E5%85%A8%E5%9B%BD%E8%83%BD%E7%B9%81%E6%AF%8D%E7%8C%AA%E5%AD%98%E6%A0%8F%E9%87%8F"
     try:
-        html = requests.get(url, headers=HEADERS, timeout=25).text
+        html = requests.get(url, headers=HEADERS, timeout=(5, 15)).text
     except Exception as e:
         print(f"  [!] 新猪派能繁母猪页面获取失败: {e}")
         return None
@@ -182,7 +195,7 @@ def fetch_xinmunet_piglet():
     """新猪派「7KG仔猪周度价格」-> {"week": 37, "value": 145, "chg_pct": -0.68, "range": "9月7日-9月13日"}"""
     lab_url = "https://www.xinmunet.com/lab/%E4%BB%94%E7%8C%AA%E4%BB%B7%E6%A0%BC"
     try:
-        html = requests.get(lab_url, headers=HEADERS, timeout=25).text
+        html = requests.get(lab_url, headers=HEADERS, timeout=(5, 15)).text
     except Exception as e:
         print(f"  [!] 新猪派仔猪页面获取失败: {e}")
         return None
@@ -195,7 +208,7 @@ def fetch_xinmunet_piglet():
     if not art_url:
         return None
     try:
-        art = requests.get(art_url, headers=HEADERS, timeout=25).text
+        art = requests.get(art_url, headers=HEADERS, timeout=(5, 15)).text
     except Exception as e:
         print(f"  [!] 新猪派仔猪文章获取失败: {e}")
         return None

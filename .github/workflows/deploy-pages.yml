@@ -26,6 +26,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: monitor/requirements.txt
 
       - name: Convert markdown to clean HTML
         run: python convert_md_to_html.py
@@ -39,6 +41,10 @@ jobs:
         run: python build.py
 
       - name: Build monitor site
+        # 该步骤会访问国内数据源（偶发不可达）；失败/超时不应阻塞整站部署，
+        # 此时回退使用仓库中已提交的最新 monitor/docs（由 Monitor Update 每日刷新）
+        continue-on-error: true
+        timeout-minutes: 8
         working-directory: monitor
         run: |
           pip install -q -r requirements.txt
