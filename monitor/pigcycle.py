@@ -835,13 +835,31 @@ def render_page(cfg, ctx, cells, signals):
 </html>"""
 
 
+def _xt_available(ctx):
+    """玄田日频数据是否基本可用（避免在源不可达时覆盖为缺数据版本）"""
+    xt = ctx["xt"]
+    ok = sum(1 for k in ("out", "inn", "soil", "corn", "bean") if xt[k])
+    return ok >= 3
+
+
 def build_pig_cycle(cfg, docs_dir):
     """构建猪周期页面，返回索引卡片所需信息"""
     ctx = collect_auto_data(cfg)
+    out_path = os.path.join(docs_dir, f'{cfg["id"]}.html')
+
+    if not _xt_available(ctx) and os.path.exists(out_path):
+        print("  [!] 玄田核心数据源不可用，保留上一版页面（避免发布缺数据版本）")
+        auto_count = sum(1 for i in cfg.get("indicators", []) if i.get("auto_key"))
+        return {
+            "id": cfg["id"],
+            "title": cfg["title"],
+            "summary": cfg.get("summary", ""),
+            "meta": f'跟踪 {len(cfg.get("indicators", []))} 项指标 · {auto_count} 项自动抓取 · 每日更新',
+        }
+
     cells = build_indicator_cells(ctx)
     signals = eval_signals(cfg, ctx)
     html = render_page(cfg, ctx, cells, signals)
-    out_path = os.path.join(docs_dir, f'{cfg["id"]}.html')
     with open(out_path, "w", encoding="utf-8") as f:
         f.write(html)
     print(f"  已生成 {out_path}")
