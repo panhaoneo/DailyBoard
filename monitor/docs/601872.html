@@ -11,12 +11,16 @@ body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
 .container { max-width: 1100px; margin: 0 auto; }
 .header { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); color: #fff; padding: 28px 36px; border-radius: 12px; margin-bottom: 20px; }
 .header h1 { font-size: 26px; margin-bottom: 6px; }
-.header .meta { font-size: 14px; opacity: 0.85; }
+.header .meta { font-size: 14px; opacity: 0.95; }
 .header .quote-price { font-size: 22px; font-weight: 700; }
-.header .up { color: #ff7675; font-weight: 700; }
-.header .down { color: #55efc4; font-weight: 700; }
-.header .flat { opacity: 0.8; }
 .header .subtitle { font-size: 13px; opacity: 0.75; margin-top: 8px; }
+.chip { display: inline-block; padding: 0 9px; border-radius: 10px; font-size: 12.5px; font-weight: 700; line-height: 20px; margin-left: 5px; vertical-align: 1px; white-space: nowrap; }
+.chip.up { background: #fdeceb; color: #d63031; }
+.chip.down { background: #e6f7ee; color: #00994d; }
+.chip.flat { background: #f0f2f5; color: #666; }
+.up { color: #d63031; }
+.down { color: #00994d; }
+.flat { color: #666; }
 .section { background: var(--card); border-radius: 12px; padding: 22px 28px; margin-bottom: 18px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
 .section h2 { font-size: 18px; color: var(--accent); margin-bottom: 14px; padding-bottom: 8px; border-bottom: 2px solid var(--border); }
 table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
@@ -42,7 +46,7 @@ a:hover { text-decoration: underline; }
 <div class="container">
     <div class="header">
         <h1>招商轮船 <span style="font-size:0.6em;opacity:0.7">601872</span></h1>
-        <div class="meta"><span class="quote-price">22.2</span> <span class="up">+1.6%</span></div>
+        <div class="meta"></div>
         <div class="subtitle">油运（VLCC）+ 干散货 + 集运（安通控股）综合航运平台，油运利润对 VLCC TCE 高度敏感</div>
         <div class="subtitle">VLCC TCE 每 1 万美元/天 ≈ 12.11 亿元/年</div>
     </div>
@@ -61,7 +65,7 @@ a:hover { text-decoration: underline; }
                 <td>周</td>
                 <td class="threshold">跌破 5 万美元/天</td>
                 <td class="scenario">乐观 → 悲观</td>
-                <td class="data"><div class="sub">参考（上海航交所 CT1 标准航速 TCE）:<br>1,117,729 美元/天 · WS 1050.94 · 212.39 美元/吨（2026-09-17）</div></td>
+                <td class="data"><div class="value">1,197,922 美元/天<span class="chip up" title="较 2026-09-17">▲ +80,193 美元/天（+7.17%）</span></div><div class="sub">参考（上海航交所 CT1 标准航速 TCE）<br>WS 1121.93<span class="chip up" title="较 2026-09-17">▲ +71</span> · 226.74 美元/吨 · 2026-09-18</div></td>
             </tr>
             <tr>
                 <td class="type">地缘</td>
@@ -79,7 +83,7 @@ a:hover { text-decoration: underline; }
                 <td>季</td>
                 <td class="threshold">Q3 环比负增长</td>
                 <td class="scenario">中性 → 悲观</td>
-                <td class="data"><div class="value">2026Q2 单季净利 41.96 亿</div><div class="sub">环比 +51.8% · 报告期 2026-06-30</div></td>
+                <td class="data"><div class="value">2026Q2 单季净利 41.96 亿</div><div class="sub">单季营收 110.95 亿 · 毛利率 45.0%（累计营收 <span class="up">+56.2%</span> · 累计净利 <span class="up">+227.6%</span>）</div><div class="sub">净利环比 <span class="chip up" title="较 上季度">▲ +51.80%</span> · 净利同比 <span class="chip up" title="较 去年同期">▲ +233.30%</span></div><div class="sub">报告期 2026-06-30</div></td>
             </tr>
             <tr>
                 <td class="type">供给</td>
@@ -123,10 +127,10 @@ a:hover { text-decoration: underline; }
 
     
     <div class="section">
-        <h2>财报明细（单季净利）</h2>
+        <h2>财报明细（单季）</h2>
         <table class="fin-table">
-            <thead><tr><th>季度</th><th>报告期</th><th>单季净利</th><th>累计净利</th></tr></thead>
-            <tbody><tr><td>2026Q2</td><td>2026-06-30</td><td>41.96 亿</td><td>69.60 亿</td></tr><tr><td>2026Q1</td><td>2026-03-31</td><td>27.63 亿</td><td>27.63 亿</td></tr><tr><td>2025Q4</td><td>2025-12-31</td><td>27.12 亿</td><td>60.12 亿</td></tr><tr><td>2025Q3</td><td>2025-09-30</td><td>11.75 亿</td><td>33.00 亿</td></tr><tr><td>2025Q2</td><td>2025-06-30</td><td>12.59 亿</td><td>21.25 亿</td></tr><tr><td>2025Q1</td><td>2025-03-31</td><td>8.65 亿</td><td>8.65 亿</td></tr><tr><td>2024Q4</td><td>2024-12-31</td><td>17.38 亿</td><td>51.07 亿</td></tr><tr><td>2024Q3</td><td>2024-09-30</td><td>8.72 亿</td><td>33.69 亿</td></tr></tbody>
+            <thead><tr><th>季度</th><th>报告期</th><th>单季营收</th><th>单季净利</th><th>累计净利</th></tr></thead>
+            <tbody><tr><td>2026Q2</td><td>2026-06-30</td><td>110.95 亿</td><td>41.96 亿</td><td>69.60 亿</td></tr><tr><td>2026Q1</td><td>2026-03-31</td><td>85.56 亿</td><td>27.63 亿</td><td>27.63 亿</td></tr><tr><td>2025Q4</td><td>2025-12-31</td><td>88.67 亿</td><td>27.12 亿</td><td>60.12 亿</td></tr><tr><td>2025Q3</td><td>2025-09-30</td><td>67.25 亿</td><td>11.75 亿</td><td>33.00 亿</td></tr><tr><td>2025Q2</td><td>2025-06-30</td><td>69.89 亿</td><td>12.59 亿</td><td>21.25 亿</td></tr><tr><td>2025Q1</td><td>2025-03-31</td><td>55.95 亿</td><td>8.65 亿</td><td>8.65 亿</td></tr><tr><td>2024Q4</td><td>2024-12-31</td><td>65.03 亿</td><td>17.38 亿</td><td>51.07 亿</td></tr><tr><td>2024Q3</td><td>2024-09-30</td><td>60.62 亿</td><td>8.72 亿</td><td>33.69 亿</td></tr></tbody>
         </table>
     </div>
 
@@ -136,7 +140,7 @@ a:hover { text-decoration: underline; }
     </div>
 
     <div class="footer">
-        构建时间: 2026-09-18 10:25（北京时间） · 行情/财报: 东方财富 · 运价参考: 上海航运交易所 CTFI<br>
+        构建时间: 2026-09-19 13:03（北京时间） · 行情/财报: 东方财富 · 运价参考: 上海航运交易所 CTFI<br>
         <a href="index.html">← 返回跟踪列表</a>
     </div>
 </div>

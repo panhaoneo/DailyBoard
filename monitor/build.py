@@ -99,6 +99,10 @@ def calc_yoy(series):
     return None
 
 
+def _pct_cls(v):
+    return "up" if (v or 0) > 0 else "down" if (v or 0) < 0 else "flat"
+
+
 def _safe_float(val, default=None):
     if val is None or val == "-" or val == "":
         return default
@@ -136,7 +140,7 @@ def fetch_quote(market):
 
 def fetch_em_quarterly(code):
     """
-    东方财富业绩报表 -> 单季净利序列
+    东方财富业绩报表 -> 单季净利/营收序列
     返回: {"latest": {...}, "series": [最近8个季度], "qoq": 环比%}
     """
     try:
@@ -158,13 +162,21 @@ def fetch_em_quarterly(code):
             net = _safe_float(r.get("PARENT_NETPROFIT"))
             if not dt_str or net is None:
                 continue
-            reports.append({"date": dt_str, "cum": net})
+            reports.append({
+                "date": dt_str,
+                "cum": net,
+                "rev_cum": _safe_float(r.get("TOTAL_OPERATE_INCOME")),
+                "ystz": _safe_float(r.get("YSTZ")),
+                "sjltz": _safe_float(r.get("SJLTZ")),
+                "xsmll": _safe_float(r.get("XSMLL")),
+                "roe": _safe_float(r.get("WEIGHTAVG_ROE")),
+            })
         reports.sort(key=lambda x: x["date"])
 
-        # 计算单季净利
+        # 计算单季净利 / 单季营收
         series = []
         prev_cum_by_year = {}
-        prev_date = None
+        prev_rev_by_year = {}
         for rep in reports:
             y = int(rep["date"][:4])
             q = (int(rep["date"][5:7]) - 1) // 3 + 1
@@ -173,13 +185,27 @@ def fetch_em_quarterly(code):
             else:
                 single = rep["cum"] - prev_cum_by_year[y]
             prev_cum_by_year[y] = rep["cum"]
-            prev_date = rep["date"]
+
+            rev_single = None
+            if rep.get("rev_cum") is not None:
+                if q == 1 or y not in prev_rev_by_year:
+                    rev_single = rep["rev_cum"]
+                else:
+                    rev_single = rep["rev_cum"] - prev_rev_by_year[y]
+                prev_rev_by_year[y] = rep["rev_cum"]
+
             series.append({
                 "date": rep["date"],
                 "year": y,
                 "quarter": q,
                 "single": single,
                 "cum": rep["cum"],
+                "rev_single": rev_single,
+                "rev_cum": rep.get("rev_cum"),
+                "ystz": rep.get("ystz"),
+                "sjltz": rep.get("sjltz"),
+                "xsmll": rep.get("xsmll"),
+                "roe": rep.get("roe"),
             })
 
         if not series:
@@ -329,9 +355,23 @@ def render_indicator_cell(ind, auto_data):
             qoq_chip = pct_chip(qoq, ref_text="上季度")
             yoy_chip = pct_chip(yoy, ref_text="去年同期")
             warn = ' <span class="warn">⚠ 环比负增长</span>' if (qoq is not None and qoq < 0) else ""
+            rev_line = ""
+            if latest.get("rev_single") is not None:
+                rev_line = f'单季营收 {fmt_amount(latest["rev_single"])}'
+                if latest.get("xsmll") is not None:
+                    rev_line += f' · 毛利率 {latest["xsmll"]:.1f}%'
+                cum = []
+                if latest.get("ystz") is not None:
+                    cum.append(f'累计营收 <span class="{_pct_cls(latest["ystz"])}">{latest["ystz"]:+.1f}%</span>')
+                if latest.get("sjltz") is not None:
+                    cum.append(f'累计净利 <span class="{_pct_cls(latest["sjltz"])}">{latest["sjltz"]:+.1f}%</span>')
+                if cum:
+                    rev_line += f'（{" · ".join(cum)}）'
+                rev_line = f'<div class="sub">{rev_line}</div>'
             parts.append(
                 f'<div class="value">{latest["year"]}Q{latest["quarter"]} 单季净利 {fmt_amount(latest["single"])}</div>'
-                f'<div class="sub">环比 {qoq_chip or "-"} · 同比 {yoy_chip or "-"}</div>'
+                f'{rev_line}'
+                f'<div class="sub">净利环比 {qoq_chip or "-"} · 净利同比 {yoy_chip or "-"}</div>'
                 f'<div class="sub">报告期 {latest["date"]}{warn}</div>'
             )
         else:
@@ -344,7 +384,7 @@ def render_indicator_cell(ind, auto_data):
                 f'<div class="value">{status}</div>'
                 f'<div class="sub">更新: {manual_upd or "-"}</div>'
             )
-        else:
+        elif manual_val in (None, ""):
             parts.append('<div class="sub">待跟踪</div>')
 
     fresh = freshness(ind)
@@ -393,14 +433,15 @@ def render_stock_page(stock, auto_data):
             fin_rows += (
                 f'<tr><td>{item["year"]}Q{item["quarter"]}</td>'
                 f'<td>{item["date"]}</td>'
+                f'<td>{fmt_amount(item.get("rev_single"))}</td>'
                 f'<td>{fmt_amount(item["single"])}</td>'
                 f'<td>{fmt_amount(item["cum"])}</td></tr>'
             )
         fin_section = f"""
     <div class="section">
-        <h2>财报明细（单季净利）</h2>
+        <h2>财报明细（单季）</h2>
         <table class="fin-table">
-            <thead><tr><th>季度</th><th>报告期</th><th>单季净利</th><th>累计净利</th></tr></thead>
+            <thead><tr><th>季度</th><th>报告期</th><th>单季营收</th><th>单季净利</th><th>累计净利</th></tr></thead>
             <tbody>{fin_rows}</tbody>
         </table>
     </div>"""
@@ -435,6 +476,9 @@ body {{ font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif
 .chip.up {{ background: #fdeceb; color: #d63031; }}
 .chip.down {{ background: #e6f7ee; color: #00994d; }}
 .chip.flat {{ background: #f0f2f5; color: #666; }}
+.up {{ color: #d63031; }}
+.down {{ color: #00994d; }}
+.flat {{ color: #666; }}
 .section {{ background: var(--card); border-radius: 12px; padding: 22px 28px; margin-bottom: 18px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }}
 .section h2 {{ font-size: 18px; color: var(--accent); margin-bottom: 14px; padding-bottom: 8px; border-bottom: 2px solid var(--border); }}
 table {{ width: 100%; border-collapse: collapse; font-size: 13.5px; }}
