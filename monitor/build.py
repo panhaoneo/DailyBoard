@@ -23,11 +23,13 @@ from zoneinfo import ZoneInfo
 import requests
 
 import pigcycle
+from pigcycle import delta_chip, pct_chip
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 STOCKS_DIR = os.path.join(ROOT, "stocks")
 THEMES_DIR = os.path.join(ROOT, "themes")
 DOCS_DIR = os.path.join(ROOT, "docs")
+STATE_PATH = os.path.join(ROOT, "state", "last_values.json")
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -52,6 +54,49 @@ FREQ_DAYS = {
 
 def now_bj():
     return datetime.now(ZoneInfo("Asia/Shanghai"))
+
+
+def load_state():
+    try:
+        with open(STATE_PATH, encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
+def save_state(state):
+    os.makedirs(os.path.dirname(STATE_PATH), exist_ok=True)
+    with open(STATE_PATH, "w", encoding="utf-8") as f:
+        json.dump(state, f, ensure_ascii=False, indent=2)
+
+
+def record_ctfi_history(state, code, ctfi):
+    """记录 CTFI 各期数据（同日幂等），返回上一期记录用于计算变化"""
+    hist = state.setdefault(code, {}).setdefault("sse_ctfi_ct1", [])
+    if ctfi and ctfi.get("date"):
+        if not hist or hist[-1].get("date") != ctfi["date"]:
+            hist.append({
+                "date": ctfi["date"],
+                "tce_std": ctfi.get("tce_std"),
+                "ws": ctfi.get("ws"),
+                "usd_per_ton": ctfi.get("usd_per_ton"),
+            })
+            del hist[:-30]
+    return hist[-2] if len(hist) >= 2 else None
+
+
+def calc_yoy(series):
+    """单季净利同比：最新季度 vs 去年同季"""
+    if not series or len(series) < 5:
+        return None
+    latest = series[-1]
+    target = next(
+        (s for s in series[:-1] if s["year"] == latest["year"] - 1 and s["quarter"] == latest["quarter"]),
+        None,
+    )
+    if target and target.get("single"):
+        return round((latest["single"] - target["single"]) / abs(target["single"]) * 100, 1)
+    return None
 
 
 def _safe_float(val, default=None):
@@ -264,11 +309,15 @@ def render_indicator_cell(ind, auto_data):
     if auto_ref == "sse_ctfi_ct1":
         if ref:
             tce = ref.get("tce_std")
-            tce_txt = f"{tce:,.0f} 美元/天" if tce else "-"
+            prev = auto_data.get("sse_ctfi_ct1_prev")
+            tce_chip = delta_chip(tce, prev.get("tce_std") if prev else None, unit=" 美元/天", digits=0, with_pct=True, ref_text=prev.get("date", "") if prev else "") if prev else ""
+            ws_chip = delta_chip(ref.get("ws"), prev.get("ws") if prev else None, digits=0, ref_text=prev.get("date", "") if prev else "") if prev else ""
+            tce_txt = f"{tce:,.0f} 美元/天{tce_chip}" if tce else "-"
             parts.append(
-                f'<div class="sub">参考（上海航交所 CT1 标准航速 TCE）:<br>'
-                f'{tce_txt} · WS {ref.get("ws", "-")} · {ref.get("usd_per_ton", "-")} 美元/吨'
-                f'（{ref.get("date", "-")}）</div>'
+                f'<div class="value">{tce_txt}</div>'
+                f'<div class="sub">参考（上海航交所 CT1 标准航速 TCE）<br>'
+                f'WS {ref.get("ws", "-")}{ws_chip} · {ref.get("usd_per_ton", "-")} 美元/吨 · {ref.get("date", "-")}'
+                f'</div>'
             )
         else:
             parts.append('<div class="sub">参考数据获取失败</div>')
@@ -276,11 +325,14 @@ def render_indicator_cell(ind, auto_data):
         if ref:
             latest = ref["latest"]
             qoq = ref.get("qoq")
-            qoq_txt = f"{qoq:+.1f}%" if qoq is not None else "-"
+            yoy = calc_yoy(ref.get("series"))
+            qoq_chip = pct_chip(qoq, ref_text="上季度")
+            yoy_chip = pct_chip(yoy, ref_text="去年同期")
             warn = ' <span class="warn">⚠ 环比负增长</span>' if (qoq is not None and qoq < 0) else ""
             parts.append(
                 f'<div class="value">{latest["year"]}Q{latest["quarter"]} 单季净利 {fmt_amount(latest["single"])}</div>'
-                f'<div class="sub">环比 {qoq_txt} · 报告期 {latest["date"]}{warn}</div>'
+                f'<div class="sub">环比 {qoq_chip or "-"} · 同比 {yoy_chip or "-"}</div>'
+                f'<div class="sub">报告期 {latest["date"]}{warn}</div>'
             )
         else:
             parts.append('<div class="sub">财报数据获取失败</div>')
@@ -312,9 +364,10 @@ def render_stock_page(stock, auto_data):
 
     quote_html = ""
     if quote:
-        cls = "up" if (quote["change_pct"] or 0) > 0 else "down" if (quote["change_pct"] or 0) < 0 else "flat"
-        sign = "+" if (quote["change_pct"] or 0) > 0 else ""
-        quote_html = f'<span class="quote-price">{quote["price"]}</span> <span class="{cls}">{sign}{quote["change_pct"]}%</span>'
+        pct = quote["change_pct"] or 0
+        cls = "up" if pct > 0 else "down" if pct < 0 else "flat"
+        arrow = "▲" if pct > 0 else "▼" if pct < 0 else "—"
+        quote_html = f'<span class="quote-price">{quote["price"]}</span> <span class="chip {cls}">{arrow} {pct:+.2f}%</span>'
 
     ind_rows = ""
     for ind in stock.get("indicators", []):
@@ -375,12 +428,13 @@ body {{ font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif
 .container {{ max-width: 1100px; margin: 0 auto; }}
 .header {{ background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); color: #fff; padding: 28px 36px; border-radius: 12px; margin-bottom: 20px; }}
 .header h1 {{ font-size: 26px; margin-bottom: 6px; }}
-.header .meta {{ font-size: 14px; opacity: 0.85; }}
+.header .meta {{ font-size: 14px; opacity: 0.95; }}
 .header .quote-price {{ font-size: 22px; font-weight: 700; }}
-.header .up {{ color: #ff7675; font-weight: 700; }}
-.header .down {{ color: #55efc4; font-weight: 700; }}
-.header .flat {{ opacity: 0.8; }}
 .header .subtitle {{ font-size: 13px; opacity: 0.75; margin-top: 8px; }}
+.chip {{ display: inline-block; padding: 0 9px; border-radius: 10px; font-size: 12.5px; font-weight: 700; line-height: 20px; margin-left: 5px; vertical-align: 1px; white-space: nowrap; }}
+.chip.up {{ background: #fdeceb; color: #d63031; }}
+.chip.down {{ background: #e6f7ee; color: #00994d; }}
+.chip.flat {{ background: #f0f2f5; color: #666; }}
 .section {{ background: var(--card); border-radius: 12px; padding: 22px 28px; margin-bottom: 18px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }}
 .section h2 {{ font-size: 18px; color: var(--accent); margin-bottom: 14px; padding-bottom: 8px; border-bottom: 2px solid var(--border); }}
 table {{ width: 100%; border-collapse: collapse; font-size: 13.5px; }}
@@ -496,6 +550,7 @@ h1 {{ font-size: 26px; color: #1a1a2e; margin-bottom: 6px; }}
 def main():
     os.makedirs(DOCS_DIR, exist_ok=True)
     stock_files = sorted(glob.glob(os.path.join(STOCKS_DIR, "*.json")))
+    state = load_state()
 
     stocks = []
     for path in stock_files:
@@ -511,7 +566,9 @@ def main():
             auto_data["em_quarterly"] = fetch_em_quarterly(stock["code"])
         if any(i.get("auto_ref") == "sse_ctfi_ct1" for i in stock.get("indicators", [])):
             print("  获取上海航交所 CTFI...")
-            auto_data["sse_ctfi_ct1"] = fetch_sse_ctfi_ct1()
+            ctfi = fetch_sse_ctfi_ct1()
+            auto_data["sse_ctfi_ct1"] = ctfi
+            auto_data["sse_ctfi_ct1_prev"] = record_ctfi_history(state, stock["code"], ctfi)
 
         html = render_stock_page(stock, auto_data)
         out_path = os.path.join(DOCS_DIR, f"{stock['code']}.html")
@@ -519,6 +576,8 @@ def main():
             f.write(html)
         print(f"  已生成 {out_path}")
         stocks.append(stock)
+
+    save_state(state)
 
     themes = []
     for path in sorted(glob.glob(os.path.join(THEMES_DIR, "*.json"))):

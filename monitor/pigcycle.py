@@ -48,6 +48,45 @@ def _f(val, default=None):
 
 
 # ============================================================
+# 变化高亮标签（chip）
+# ============================================================
+
+def delta_chip(cur, prev, unit="", digits=2, with_pct=False, ref_text="", thousands=False):
+    """两值对比的变化标签：▲ +0.12（+1.1%）红底色 / ▼ 绿底色 / 持平灰底色"""
+    cur, prev = _f(cur), _f(prev)
+    if cur is None or prev is None:
+        return ""
+    diff = cur - prev
+    tip = f' title="较 {esc(ref_text)}"' if ref_text else ""
+    if diff == 0:
+        return f'<span class="chip flat"{tip}>持平</span>'
+    cls = "up" if diff > 0 else "down"
+    arrow = "▲" if diff > 0 else "▼"
+    spec = f"{{:+,.0f}}" if thousands or digits == 0 else f"{{:+.{digits}f}}"
+    txt = f"{arrow} {spec.format(diff)}{unit}"
+    if with_pct and prev:
+        txt += f"（{diff / abs(prev) * 100:+.2f}%）"
+    return f'<span class="chip {cls}"{tip}>{txt}</span>'
+
+
+def pct_chip(pct, ref_text=""):
+    """百分比变化标签（如 环比 -0.68%）"""
+    pct = _f(pct)
+    if pct is None:
+        return ""
+    tip = f' title="较 {esc(ref_text)}"' if ref_text else ""
+    if pct == 0:
+        return f'<span class="chip flat"{tip}>持平</span>'
+    cls = "up" if pct > 0 else "down"
+    arrow = "▲" if pct > 0 else "▼"
+    return f'<span class="chip {cls}"{tip}>{arrow} {pct:+.2f}%</span>'
+
+
+def warn_chip(text):
+    return f'<span class="chip warn">{esc(text)}</span>'
+
+
+# ============================================================
 # 数据抓取
 # ============================================================
 
@@ -276,7 +315,7 @@ def svg_line(series, width=660, height=200, refs=None, unit="", fmt="{:.2f}", fo
         pts = " ".join(f"{X(i):.1f},{Y(v):.1f}" for i, (_, v) in enumerate(s["points"]))
         parts.append(f'<polyline fill="none" stroke="{s["color"]}" stroke-width="1.8" points="{pts}"/>')
         lx, ly = X(len(s["points"]) - 1), Y(s["points"][-1][1])
-        parts.append(f'<circle cx="{lx:.1f}" cy="{ly:.1f}" r="2.6" fill="{s["color"]}"/>')
+        parts.append(f'<circle cx="{lx:.1f}" cy="{ly:.1f}" r="3.4" fill="{s["color"]}" stroke="#fff" stroke-width="1.4"/>')
         anchor = "end" if lx > width * 0.7 else "start"
         dx = -5 if anchor == "end" else 5
         parts.append(f'<text x="{lx + dx:.1f}" y="{ly - 6:.1f}" text-anchor="{anchor}" font-size="10.5" font-weight="600" fill="{s["color"]}">{fmt.format(s["points"][-1][1])}{unit}</text>')
@@ -441,9 +480,9 @@ def build_indicator_cells(ctx):
     # 能繁母猪存栏
     caps = []
     if sow:
-        mom = f'，环比 {sow["mom"]:+.1f}%' if sow.get("mom") is not None else ""
-        yo = f'，同比 {sow["yoy"]:+.1f}%' if sow.get("yoy") is not None else ""
-        caps.append(val(f'{sow["value"]:,.0f} 万头') + sub(f'{sow["period"]}（统计局，{sow.get("published", "-")}）{mom}{yo}'))
+        mom = pct_chip(sow.get("mom"), ref_text="上季度") if sow.get("mom") is not None else ""
+        yo = pct_chip(sow.get("yoy"), ref_text="去年同期") if sow.get("yoy") is not None else ""
+        caps.append(val(f'{sow["value"]:,.0f} 万头{mom}') + sub(f'{sow["period"]}（统计局，{sow.get("published", "-")}）' + (f' · 同比 {yo}' if yo else "")))
     qs = _quarter_series(m["capacity"])
     if qs:
         qlabel, qv = qs[-1]
@@ -454,26 +493,31 @@ def build_indicator_cells(ctx):
 
     # 能繁环比
     if sow and sow.get("mom") is not None:
-        warn = ' <span class="warn">去化中</span>' if sow["mom"] < 0 else ' <span class="warn">环比转正</span>'
-        out["sow_mom"] = val(f'{sow["mom"]:+.1f}%') + sub(f'{sow["period"]}{warn}')
+        note = "去化中" if sow["mom"] < 0 else "环比转正"
+        out["sow_mom"] = val(f'{sow["mom"]:+.1f}%' + warn_chip(note)) + sub(f'{sow["period"]}')
     else:
         out["sow_mom"] = sub("获取失败")
 
     # 生猪存栏 / 出栏
     if qs:
         qlabel, qv = qs[-1]
-        out["hog_stock"] = val(f'{qv[2]:,.0f} 万头') + sub(f'{qlabel}（玄田）')
-        out["hog_slaughter"] = val(f'{qv[3]:,.0f} 万头') + sub(f'{qlabel}（玄田）')
+        prev_q = qs[-2] if len(qs) > 1 else None
+        stock_chip = delta_chip(qv[2], prev_q[1][2] if prev_q else None, unit=" 万头", digits=0, ref_text=prev_q[0] if prev_q else "")
+        sla_chip = delta_chip(qv[3], prev_q[1][3] if prev_q else None, unit=" 万头", digits=0, ref_text=prev_q[0] if prev_q else "")
+        out["hog_stock"] = val(f'{qv[2]:,.0f} 万头{stock_chip}') + sub(f'{qlabel}（玄田，环比上季）')
+        out["hog_slaughter"] = val(f'{qv[3]:,.0f} 万头{sla_chip}') + sub(f'{qlabel}（玄田，环比上季）')
     else:
         out["hog_stock"] = out["hog_slaughter"] = sub("获取失败")
 
     # 屠宰量
     sl = m["slaughter"]
     if sl:
-        rows = [r for r in sl if len(r) >= 2][-3:]
+        rows = [r for r in sl if len(r) >= 2]
         latest = rows[-1] if rows else None
+        prev = rows[-2] if len(rows) > 1 else None
         if latest:
-            out["slaughter"] = val(f'{_f(latest[1]):,.0f} 万头') + sub(" · ".join(f"{r[0]}: {_f(r[1]):,.0f}" for r in rows))
+            chip = delta_chip(_f(latest[1]), _f(prev[1]) if prev else None, unit=" 万头", digits=0, ref_text=prev[0] if prev else "")
+            out["slaughter"] = val(f'{_f(latest[1]):,.0f} 万头{chip}') + sub(" · ".join(f"{r[0]}: {_f(r[1]):,.0f}" for r in rows[-3:]))
         else:
             out["slaughter"] = sub("获取失败")
     else:
@@ -483,59 +527,73 @@ def build_indicator_cells(ctx):
     out_series = xt["out"]
     if out_series:
         cur = out_series[-1]
+        prev = out_series[-2] if len(out_series) > 1 else None
+        chip = delta_chip(cur[1], prev[1] if prev else None, digits=2, with_pct=True, ref_text=prev[0] if prev else "")
         w = _chg_over(out_series, points=7)
-        out["hog_price"] = val(f"{cur[1]:.2f} 元/公斤") + sub(f'{cur[0]}（外三元）' + (f' · 近7日 {w:+.2f}%' if w is not None else ""))
+        w_txt = ""
+        if w is not None:
+            wcls = "up" if w > 0 else "down" if w < 0 else "flat"
+            w_txt = f' · 近7日 <span class="{wcls}">{w:+.2f}%</span>'
+        out["hog_price"] = val(f"{cur[1]:.2f} 元/公斤{chip}") + sub(f'{cur[0]}（外三元）{w_txt}')
     else:
         out["hog_price"] = sub("获取失败")
 
     # 仔猪
     parts = []
     if piglet_w:
-        chg = ""
-        if piglet_w.get("chg_pct") is not None:
-            chg = "持平" if piglet_w["chg_pct"] == 0 else f'环比 {piglet_w["chg_pct"]:+.2f}%'
-        parts.append(val(f'{piglet_w["value"]:.0f} 元/头') + sub(f'7KG · 第{piglet_w["week"]}周（{piglet_w.get("range", "")}）{chg}'))
+        chip = " 持平" if piglet_w.get("chg_pct") == 0 else pct_chip(piglet_w.get("chg_pct"), ref_text=f'第{piglet_w["week"] - 1}周' if piglet_w.get("week") else "")
+        parts.append(val(f'{piglet_w["value"]:.0f} 元/头{chip}') + sub(f'7KG · 第{piglet_w["week"]}周（{piglet_w.get("range", "")}）'))
     pz = m["piglet"]
     if pz:
-        parts.append(sub(f'官方周度: {pz[-1][1]} 元/公斤（{pz[-1][0]}）'))
+        cur, prev = pz[-1], pz[-2] if len(pz) > 1 else None
+        chip = delta_chip(_f(cur[1]), _f(prev[1]) if prev else None, digits=2, ref_text=prev[0] if prev else "")
+        parts.append(sub(f'官方周度: {cur[1]} 元/公斤{chip}（{cur[0]}）'))
     out["piglet"] = "".join(parts) if parts else sub("获取失败")
 
     # 二元母猪
     sp = m["sow_price"]
     if sp:
-        rows = [r for r in sp if len(r) >= 2][-2:]
-        out["sow_price"] = val(f'{_f(rows[-1][1]):.2f} 元/公斤') + sub(rows[-1][0])
+        rows = [r for r in sp if len(r) >= 2]
+        cur, prev = rows[-1], rows[-2] if len(rows) > 1 else None
+        chip = delta_chip(_f(cur[1]), _f(prev[1]) if prev else None, unit=" 元", digits=2, ref_text=prev[0] if prev else "")
+        out["sow_price"] = val(f'{_f(cur[1]):.2f} 元/公斤{chip}') + sub(f'{cur[0]}（月环比）')
     else:
         out["sow_price"] = sub("获取失败")
 
     # 期货
     lh = fut.get("LH0")
     if lh and lh.get("last"):
-        chg = f'{lh["chg_pct"]:+.2f}%' if lh.get("chg_pct") is not None else "-"
-        cls = "up" if (lh.get("chg_pct") or 0) > 0 else "down" if (lh.get("chg_pct") or 0) < 0 else "flat"
-        out["futures"] = val(f'{lh["last"]:,.0f} 元/吨 <span class="{cls}">{chg}</span>') + sub(f'LH主连 · {lh.get("date", "")}')
+        chip = pct_chip(lh.get("chg_pct"), ref_text="昨结算")
+        out["futures"] = val(f'{lh["last"]:,.0f} 元/吨{chip}') + sub(f'LH主连 · {lh.get("date", "")}')
     else:
         out["futures"] = sub("获取失败")
 
     # 猪粮比（计算 + 官方周度）
     parts = []
     if ratio_calc:
-        cur = ratio_calc[-1]
+        cur, prev = ratio_calc[-1], ratio_calc[-2] if len(ratio_calc) > 1 else None
+        chip = delta_chip(cur[1], prev[1] if prev else None, digits=2, with_pct=True, ref_text=prev[0] if prev else "")
         flag = "一级预警区（低于5:1）" if cur[1] < 5 else "二级预警区（低于6:1）" if cur[1] < 6 else "盈亏平衡线上"
-        parts.append(val(f"{cur[1]:.2f} : 1") + sub(f'{cur[0]} 计算值 · {flag}'))
+        parts.append(val(f"{cur[1]:.2f} : 1{chip}") + sub(f'{cur[0]} 计算值 · {flag}'))
     off = m["ratio"]
     if off:
-        parts.append(sub(f'官方周度: {off[-1][1]}（{off[-1][0]}）'))
+        cur, prev = off[-1], off[-2] if len(off) > 1 else None
+        chip = delta_chip(_f(cur[1]), _f(prev[1]) if prev else None, digits=2, ref_text=prev[0] if prev else "")
+        parts.append(sub(f'官方周度: {cur[1]}{chip}（{cur[0]}）'))
     out["ratio"] = "".join(parts) if parts else sub("获取失败")
 
     # 饲料成本
     parts = []
     if xt["corn"]:
         c = xt["corn"][-1]
-        parts.append(val(f'{c[1]:,.0f} 元/吨') + sub(f'玉米 · {c[0]}'))
+        p = xt["corn"][-2] if len(xt["corn"]) > 1 else None
+        chip = delta_chip(c[1], p[1] if p else None, unit=" 元", digits=0, with_pct=True, ref_text=p[0] if p else "")
+        parts.append(val(f'{c[1]:,.0f} 元/吨{chip}') + sub(f'玉米 · {c[0]}'))
     if xt["bean"]:
         b = xt["bean"][-1]
-        parts.append(sub(f'豆粕 {b[1]:,.0f} 元/吨 · {b[0]}'))
+        p = xt["bean"][-2] if len(xt["bean"]) > 1 else None
+        chip = delta_chip(b[1], p[1] if p else None, unit=" 元", digits=0, with_pct=True, ref_text=p[0] if p else "")
+        parts.append(sub(f'豆粕 {b[1]:,.0f} 元/吨{chip} · {b[0]}'))
     fut_c, fut_m = fut.get("C0"), fut.get("M0")
     if fut_c and fut_m:
         parts.append(sub(f'期货: 玉米 {fut_c["last"]:,.0f} / 豆粕 {fut_m["last"]:,.0f}'))
@@ -546,8 +604,8 @@ def build_indicator_cells(ctx):
     if ws and len(ws[-1]) >= 3:
         latest = ws[-1]
         prev = ws[-2] if len(ws) > 1 else latest
-        d = _f(latest[2]) - _f(prev[2])
-        out["wholesale"] = val(f'{_f(latest[2]):.2f} 元/公斤') + sub(f'{latest[0]} · 较前值 {"+" if d >= 0 else ""}{d:.2f}')
+        chip = delta_chip(_f(latest[2]), _f(prev[2]), unit=" 元", digits=2, ref_text=prev[0])
+        out["wholesale"] = val(f'{_f(latest[2]):.2f} 元/公斤{chip}') + sub(f'{latest[0]}（较前值）')
     else:
         out["wholesale"] = sub("获取失败")
 
@@ -555,10 +613,10 @@ def build_indicator_cells(ctx):
     bt = m["baotiao"]
     if bt:
         r = bt[-1]
-        chg = ""
+        chips = ""
         if len(r) >= 4:
-            chg = f' · 环比 {_f(r[2]):+.1f}% · 同比 {_f(r[3]):+.1f}%'
-        out["baotiao"] = val(f'{_f(r[1]):.2f} 元/公斤') + sub(f"{r[0]}{chg}")
+            chips = " 环比" + pct_chip(_f(r[2]), ref_text="上周") + " 同比" + pct_chip(_f(r[3]), ref_text="去年同期")
+        out["baotiao"] = val(f'{_f(r[1]):.2f} 元/公斤') + sub(f"{r[0]}{chips}")
     else:
         out["baotiao"] = sub("获取失败")
 
@@ -590,6 +648,11 @@ body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
 .up { color: #d63031; }
 .down { color: #00a854; }
 .flat { color: #888; }
+.chip { display: inline-block; padding: 0 8px; border-radius: 10px; font-size: 12px; font-weight: 700; line-height: 19px; margin-left: 5px; vertical-align: 1px; white-space: nowrap; }
+.chip.up { background: #fdeceb; color: #d63031; }
+.chip.down { background: #e6f7ee; color: #00994d; }
+.chip.flat { background: #f0f2f5; color: #888; }
+.chip.warn { background: #fdf1e0; color: #e67e22; }
 table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
 th, td { padding: 8px 10px; text-align: center; border-bottom: 1px solid var(--border); vertical-align: top; }
 th { background: #f8f9fb; color: #555; font-weight: 600; font-size: 12.5px; }
@@ -633,35 +696,57 @@ def render_page(cfg, ctx, cells, signals):
         cards.append(f'<div class="kcard"><div class="label">{label}</div><div class="value">{value}</div><div class="sub"{cls}>{sub}</div></div>')
 
     if xt["out"]:
-        cur = xt["out"][-1]
+        cur, prev = xt["out"][-1], xt["out"][-2] if len(xt["out"]) > 1 else None
         w = _chg_over(xt["out"], points=7)
-        card("生猪（外三元）", f"{cur[1]:.2f}", f'元/公斤 · {cur[0]} · 近7日 {w:+.2f}%' if w is not None else f"元/公斤 · {cur[0]}")
+        sub = f'元/公斤 · {cur[0]}'
+        if w is not None:
+            wcls = "up" if w > 0 else "down" if w < 0 else "flat"
+            sub += f' · 近7日 <span class="{wcls}">{w:+.2f}%</span>'
+        card(
+            "生猪（外三元）",
+            f'{cur[1]:.2f}{delta_chip(cur[1], prev[1] if prev else None, with_pct=True, ref_text=prev[0] if prev else "", digits=2)}',
+            sub,
+        )
     if ratio_calc:
-        cur = ratio_calc[-1]
+        cur, prev = ratio_calc[-1], ratio_calc[-2] if len(ratio_calc) > 1 else None
         warn = cur[1] < 6
         flag = "一级预警" if cur[1] < 5 else "二级预警" if cur[1] < 6 else "平衡线上"
-        card("猪粮比（计算）", f"{cur[1]:.2f}:1", f"{cur[0]} · {flag}", warn)
+        card(
+            "猪粮比（计算）",
+            f'{cur[1]:.2f}:1{delta_chip(cur[1], prev[1] if prev else None, digits=2, with_pct=True, ref_text=prev[0] if prev else "")}',
+            f'{cur[0]} · {flag}',
+            warn,
+        )
     if piglet_w:
-        chg = "" if piglet_w.get("chg_pct") is None else (" 持平" if piglet_w["chg_pct"] == 0 else f' {piglet_w["chg_pct"]:+.2f}%')
-        card("7KG仔猪", f'{piglet_w["value"]:.0f}', f'元/头 · 第{piglet_w["week"]}周{chg}')
+        ref = f'第{piglet_w["week"] - 1}周' if piglet_w.get("week") else ""
+        chip = " 持平" if piglet_w.get("chg_pct") == 0 else pct_chip(piglet_w.get("chg_pct"), ref_text=ref)
+        card("7KG仔猪", f'{piglet_w["value"]:.0f}{chip}', f'元/头 · 第{piglet_w["week"]}周（环比）')
     elif m["piglet"]:
         p = m["piglet"][-1]
         card("仔猪价", f"{p[1]}", f'元/公斤 · {p[0]}')
     if sow:
-        mom = f'环比 {sow["mom"]:+.1f}%' if sow.get("mom") is not None else ""
-        card("能繁母猪存栏", f'{sow["value"]:,.0f}', f'万头 · {sow["period"]} {mom}', warn=bool(sow.get("mom") and sow["mom"] > 0))
+        card(
+            "能繁母猪存栏",
+            f'{sow["value"]:,.0f}{pct_chip(sow.get("mom"), ref_text="上季度")}',
+            f'万头 · {sow["period"]}（环比）',
+            warn=bool(sow.get("mom") and sow["mom"] > 0),
+        )
     lh = fut.get("LH0")
     if lh and lh.get("last"):
-        chg = f'{lh["chg_pct"]:+.2f}%' if lh.get("chg_pct") is not None else ""
-        cls = "up" if (lh.get("chg_pct") or 0) > 0 else "down" if (lh.get("chg_pct") or 0) < 0 else "flat"
-        card("生猪期货主连", f'{lh["last"]:,.0f}', f'元/吨 <span class="{cls}">{chg}</span> · {lh.get("date", "")}')
+        chip = pct_chip(lh.get("chg_pct"), ref_text="昨结算")
+        card("生猪期货主连", f'{lh["last"]:,.0f}{chip}', f'元/吨 · {lh.get("date", "")}')
     if xt["corn"]:
-        card("玉米（现货）", f'{xt["corn"][-1][1]:,.0f}', f'元/吨 · {xt["corn"][-1][0]}')
+        c, p = xt["corn"][-1], xt["corn"][-2] if len(xt["corn"]) > 1 else None
+        card("玉米（现货）", f'{c[1]:,.0f}{delta_chip(c[1], p[1] if p else None, unit=" 元", digits=0, with_pct=True, ref_text=p[0] if p else "")}', f'元/吨 · {c[0]}')
     if xt["bean"]:
-        card("豆粕（现货）", f'{xt["bean"][-1][1]:,.0f}', f'元/吨 · {xt["bean"][-1][0]}')
+        c, p = xt["bean"][-1], xt["bean"][-2] if len(xt["bean"]) > 1 else None
+        card("豆粕（现货）", f'{c[1]:,.0f}{delta_chip(c[1], p[1] if p else None, unit=" 元", digits=0, with_pct=True, ref_text=p[0] if p else "")}', f'元/吨 · {c[0]}')
     if m["slaughter"]:
-        r = m["slaughter"][-1]
-        card("定点屠宰量", f'{_f(r[1]):,.0f}', f'万头 · {r[0]}')
+        rows = [r for r in m["slaughter"] if len(r) >= 2]
+        r = rows[-1]
+        prev = rows[-2] if len(rows) > 1 else None
+        chip = delta_chip(_f(r[1]), _f(prev[1]) if prev else None, unit=" 万头", digits=0, ref_text=prev[0] if prev else "")
+        card("定点屠宰量", f'{_f(r[1]):,.0f}{chip}', f'万头 · {r[0]}（月环比）')
 
     # ---- 图表 ----
     charts = []
