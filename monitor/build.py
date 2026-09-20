@@ -18,6 +18,7 @@ import re
 import json
 import glob
 from datetime import datetime, date, timedelta
+from html import escape as esc
 from zoneinfo import ZoneInfo
 
 import requests
@@ -424,6 +425,16 @@ def render_stock_page(stock, auto_data):
                 <td class="data">{cell}</td>
             </tr>"""
 
+    # 观察框架 / 复航推演等附加区块（可选，来自 stock JSON 的 sections）
+    extra_sections = ""
+    for sec in stock.get("sections", []):
+        items_html = "".join(f"<li>{esc(it)}</li>" for it in sec.get("items", []))
+        extra_sections += f"""
+    <div class="section">
+        <h2>{esc(sec.get("title", ""))}</h2>
+        <ul class="notes">{items_html}</ul>
+    </div>"""
+
     # 财报明细（em_quarterly 存在时）
     fin_section = ""
     q = auto_data.get("em_quarterly")
@@ -495,6 +506,9 @@ td.data .sub {{ color: var(--muted); font-size: 12px; margin-top: 2px; }}
 .events {{ list-style: none; }}
 .events li {{ padding: 8px 0; border-bottom: 1px dashed var(--border); }}
 .ev-date {{ color: var(--muted); font-size: 12.5px; margin-right: 8px; }}
+.notes {{ list-style: none; }}
+.notes li {{ padding: 7px 0 7px 16px; border-bottom: 1px dashed var(--border); position: relative; font-size: 13.5px; }}
+.notes li::before {{ content: "▸"; position: absolute; left: 0; color: #2980b9; }}
 .footer {{ text-align: center; color: var(--muted); font-size: 12px; padding: 18px; }}
 a {{ color: #2980b9; text-decoration: none; }}
 a:hover {{ text-decoration: underline; }}
@@ -519,6 +533,8 @@ a:hover {{ text-decoration: underline; }}
             </tbody>
         </table>
     </div>
+
+    {extra_sections}
 
     {fin_section}
 
