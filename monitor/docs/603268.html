@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>松发股份（603268）数据跟踪</title>
+<style>
+:root { --bg: #f0f2f5; --card: #fff; --fg: #333; --muted: #888; --border: #eef2f7; --accent: #1a1a2e; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background: var(--bg); color: var(--fg); line-height: 1.7; padding: 20px; }
+.container { max-width: 1100px; margin: 0 auto; }
+.header { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); color: #fff; padding: 28px 36px; border-radius: 12px; margin-bottom: 20px; }
+.header h1 { font-size: 26px; margin-bottom: 6px; }
+.header .meta { font-size: 14px; opacity: 0.95; }
+.header .quote-price { font-size: 22px; font-weight: 700; }
+.header .subtitle { font-size: 13px; opacity: 0.75; margin-top: 8px; }
+.chip { display: inline-block; padding: 0 9px; border-radius: 10px; font-size: 12.5px; font-weight: 700; line-height: 20px; margin-left: 5px; vertical-align: 1px; white-space: nowrap; }
+.chip.up { background: #fdeceb; color: #d63031; }
+.chip.down { background: #e6f7ee; color: #00994d; }
+.chip.flat { background: #f0f2f5; color: #666; }
+.up { color: #d63031; }
+.down { color: #00994d; }
+.flat { color: #666; }
+.section { background: var(--card); border-radius: 12px; padding: 22px 28px; margin-bottom: 18px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+.section h2 { font-size: 18px; color: var(--accent); margin-bottom: 14px; padding-bottom: 8px; border-bottom: 2px solid var(--border); }
+table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+th, td { padding: 9px 10px; text-align: center; border-bottom: 1px solid var(--border); vertical-align: top; }
+th { background: #f8f9fb; color: #555; font-weight: 600; font-size: 12.5px; }
+td.type { white-space: nowrap; color: #555; }
+td.name { text-align: left; font-weight: 600; }
+td.why { text-align: left; color: var(--muted); font-size: 12.5px; }
+td.data { text-align: left; min-width: 200px; }
+td.data .value { font-weight: 600; }
+td.data .sub { color: var(--muted); font-size: 12px; margin-top: 2px; }
+.warn { color: #e67e22; font-size: 12px; margin-top: 2px; }
+.fin-table td, .fin-table th { text-align: center; }
+.events { list-style: none; }
+.events li { padding: 8px 0; border-bottom: 1px dashed var(--border); }
+.ev-date { color: var(--muted); font-size: 12.5px; margin-right: 8px; }
+.notes { list-style: none; }
+.notes li { padding: 7px 0 7px 16px; border-bottom: 1px dashed var(--border); position: relative; font-size: 13.5px; }
+.notes li::before { content: "▸"; position: absolute; left: 0; color: #2980b9; }
+.footer { text-align: center; color: var(--muted); font-size: 12px; padding: 18px; }
+a { color: #2980b9; text-decoration: none; }
+a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>松发股份 <span style="font-size:0.6em;opacity:0.7">603268</span></h1>
+        <div class="meta"></div>
+        <div class="subtitle">恒力重工借壳后的造船平台（陶瓷 → 造船转型）：手持订单 382 艘（VLCC 订单全球第一）、产能 300 万吨钢 / 4 座船坞、排产至 2030 年。受益造船大周期：全球活跃船厂砍半、日韩产能收缩、中国承接全球约 82% 新船订单</div>
+        <div class="subtitle">收入按交付确认：2026H1 交付 40 艘 → 营收 235 亿（+251.9%）、净利 36.1 亿（+457.7%）；2028-2029 交付潮是周期持续性的关键</div>
+    </div>
+
+    <div class="section">
+        <h2>指标与事件跟踪</h2>
+        <table>
+            <thead>
+                <tr><th>类型</th><th>指标/事件</th><th>为什么重要</th><th>频率</th><th>触发阈值</th><th>影响情景</th><th>最新数据/状态</th></tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td class="type">订单</td>
+                <td class="name">手持订单（艘数 / 金额）</td>
+                <td class="why">未来 3-4 年收入的可视化蓄水池；订单艘数决定交付排期与议价能力</td>
+                <td>季</td>
+                <td class="threshold">新签订单显著放缓 / 出现撤单</td>
+                <td class="scenario">乐观 → 中性</td>
+                <td class="data"><div class="value">382 艘（2026H1，VLCC 订单全球第一）</div><div class="sub">填报: 2026-08</div></td>
+            </tr>
+            <tr>
+                <td class="type">订单</td>
+                <td class="name">新签订单节奏（爆单状态）</td>
+                <td class="why">接单速度 = 周期位置；大连集群 3 个月激增近百艘订单</td>
+                <td>事件</td>
+                <td class="threshold">月度新签订单锐减或归零</td>
+                <td class="scenario">乐观 → 中性</td>
+                <td class="data"><div class="value">持续爆单：希腊船王 +8 艘（单客户累计 50+）；9/16 生效 1 艘 VLCC + 首份大型散货船订单（2 艘）</div><div class="sub">更新: 2026-09</div></td>
+            </tr>
+            <tr>
+                <td class="type">财报</td>
+                <td class="name">交付与单季营收 / 净利</td>
+                <td class="why">收入按交付确认：交付节奏即业绩节奏</td>
+                <td>季</td>
+                <td class="threshold"></td>
+                <td class="scenario"></td>
+                <td class="data"><div class="value">2026Q2 单季净利 25.15 亿</div><div class="sub">单季营收 146.16 亿 · 毛利率 23.7%（累计营收 <span class="up">+251.9%</span> · 累计净利 <span class="up">+457.7%</span>）</div><div class="sub">净利环比 <span class="chip up" title="较 上季度">▲ +130.00%</span> · 净利同比 <span class="chip up" title="较 去年同期">▲ +540.00%</span></div><div class="sub">报告期 2026-06-30</div></td>
+            </tr>
+            <tr>
+                <td class="type">产能</td>
+                <td class="name">船坞产能与排期</td>
+                <td class="why">产能 = 交付上限；满产与扩产决定利润弹性</td>
+                <td>半年</td>
+                <td class="threshold">扩产激进遇订单放缓 = 产能过剩风险</td>
+                <td class="scenario">乐观 → 中性</td>
+                <td class="data"><div class="value">300 万吨钢/年 · 4 座船坞；订单排至 2030 年</div><div class="sub">填报: 2026-08</div></td>
+            </tr>
+            <tr>
+                <td class="type">产能</td>
+                <td class="name">高附加值船型拓展（LNG 等）</td>
+                <td class="why">船型升级 = 单船价值量与壁垒提升</td>
+                <td>事件</td>
+                <td class="threshold">确认承接 LNG / 甲醇双燃料订单 = 能力升级</td>
+                <td class="scenario">中性 → 乐观</td>
+                <td class="data"><div class="value">被传规划 LNG 运输船（2026-09，未证实）；已获首份大型散货船订单</div><div class="sub">更新: 2026-09</div></td>
+            </tr>
+            <tr>
+                <td class="type">行业</td>
+                <td class="name">全球订单份额与船厂格局</td>
+                <td class="why">供给格局决定周期长度：活跃船厂砍半、日韩主动让道</td>
+                <td>半年</td>
+                <td class="threshold">中国份额见顶回落 / 日韩复产扩产</td>
+                <td class="scenario">结构性利多</td>
+                <td class="data"><div class="value">中国占全球新船订单约 82%（2026）；日本降至 1.4%</div><div class="sub">填报: 2026-09</div></td>
+            </tr>
+            <tr>
+                <td class="type">行业</td>
+                <td class="name">新船价格 × 钢价（利润剪刀差）</td>
+                <td class="why">新船价格定收入端，钢板（20mm 造船板）与汇率定成本端</td>
+                <td>月</td>
+                <td class="threshold">钢价大幅上行挤压毛利；新船价格指数回落</td>
+                <td class="scenario">乐观 → 中性</td>
+                <td class="data"><div class="value">新船价格高位（船台排至 2030）；钢价/汇率跟踪待接入</div><div class="sub">更新: 2026-09</div></td>
+            </tr>
+            <tr>
+                <td class="type">客户</td>
+                <td class="name">大船东订单集中度</td>
+                <td class="why">头部船东加码是背书，但集中度过高有撤单/延期风险</td>
+                <td>季</td>
+                <td class="threshold">单一客户占比过高 + 撤单传闻</td>
+                <td class="scenario">乐观 → 中性</td>
+                <td class="data"><div class="value">希腊船东订单 84 艘（占中国承接希腊订单约 36%）</div><div class="sub">填报: 2026-09</div></td>
+            </tr>
+            <tr>
+                <td class="type">财务</td>
+                <td class="name">业绩承诺兑现（三年 48 亿）</td>
+                <td class="why">重组承诺是估值锚：提前超额完成 → 可信度溢价</td>
+                <td>年度</td>
+                <td class="threshold">承诺完成后盈利增速放缓（高基数压力）</td>
+                <td class="scenario">中性（关注 2027 高基数）</td>
+                <td class="data"><div class="value">提前超额完成：2026H1 归母净利 36.1 亿 > 三年承诺合计 48 亿</div><div class="sub">填报: 2026-08</div></td>
+            </tr>
+            <tr>
+                <td class="type">治理</td>
+                <td class="name">控股股东（恒力集团）与关联交易</td>
+                <td class="why">借壳后治理质量、关联交易与资金占用风险</td>
+                <td>年度</td>
+                <td class="threshold">关联交易争议 / 监管关注</td>
+                <td class="scenario">—</td>
+                <td class="data"><div class="sub">待跟踪</div></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    
+    <div class="section">
+        <h2>造船周期逻辑（为什么值得跟踪）</h2>
+        <ul class="notes"><li>需求端：全球船队老龄化 + 贸易重构（油运超级周期、航线拉长）→ 新船订单中枢上移</li><li>供给端：全球活跃船厂砍掉一半、日韩产能收缩 → 船台刚性稀缺，订单排至 2030 年（供给收缩是本轮周期核心）</li><li>价格端：船台稀缺 → 新船价格坚挺，船厂从“买方市场”转入“卖方市场”</li><li>持续性关键：2028-2029 交付潮决定这轮行情能走多远（周期驱动而非事件驱动）</li><li>恒力重工位置：成立四年拿下中国承接希腊订单的约 36%；VLCC 订单量全球第一</li></ul>
+    </div>
+    <div class="section">
+        <h2>跟踪节奏与数据源</h2>
+        <ul class="notes"><li>月度：新签订单与手持订单（Clarksons / 龙de船人 / 国际船舶网）、20mm 造船板价格（我的钢铁网）</li><li>季度：交付艘数与营收确认、毛利率、手持订单变化（公司季报 / 克拉克森）</li><li>事件：大客户订单、船型升级（LNG/甲醇）、撤单/延期、扩产与制裁风险</li><li>交叉验证：油运面板（601872）的期租与绕行 → 船东现金流 → 新船订单意愿</li></ul>
+    </div>
+
+    
+    <div class="section">
+        <h2>财报明细（单季）</h2>
+        <table class="fin-table">
+            <thead><tr><th>季度</th><th>报告期</th><th>单季营收</th><th>单季净利</th><th>累计净利</th></tr></thead>
+            <tbody><tr><td>2026Q2</td><td>2026-06-30</td><td>146.16 亿</td><td>25.15 亿</td><td>36.09 亿</td></tr><tr><td>2026Q1</td><td>2026-03-31</td><td>88.88 亿</td><td>10.93 亿</td><td>10.93 亿</td></tr><tr><td>2025Q4</td><td>2025-12-31</td><td>98.81 亿</td><td>13.83 亿</td><td>26.55 亿</td></tr><tr><td>2025Q3</td><td>2025-09-30</td><td>50.79 亿</td><td>6.24 亿</td><td>12.71 亿</td></tr><tr><td>2025Q2</td><td>2025-06-30</td><td>37.08 亿</td><td>3.93 亿</td><td>6.47 亿</td></tr><tr><td>2025Q1</td><td>2025-03-31</td><td>29.72 亿</td><td>2.54 亿</td><td>2.54 亿</td></tr><tr><td>2024Q4</td><td>2024-12-31</td><td>22.84 亿</td><td>1.50 亿</td><td>2.24 亿</td></tr><tr><td>2024Q3</td><td>2024-09-30</td><td>18.79 亿</td><td>0.78 亿</td><td>0.74 亿</td></tr></tbody>
+        </table>
+    </div>
+
+    <div class="section">
+        <h2>事件记录</h2>
+        <ul class="events"><li><span class="ev-date">2026-09-18</span> 大连造船业“爆单”：3 个月激增近百艘订单（区域集群效应）</li><li><span class="ev-date">2026-09-16</span> 恒力重工生效 1 艘 VLCC 订单；获希腊船东首份大型散货船订单（2 艘）；被传规划 LNG 运输船</li><li><span class="ev-date">2026-09-14</span> 希腊船王再加码 +8 艘，单客户累计突破 50 艘；中国拿下全球 82% 新船订单（日韩让道）</li><li><span class="ev-date">2026-09-10</span> 媒体聚焦：从 *ST 陶瓷厂到 2000 亿市值（陈建华夫妇运作七年）</li><li><span class="ev-date">2026-08-25</span> 中报：营收 235.04 亿（+251.9%）、归母净利 36.09 亿（+457.7%）；手持订单 382 艘（VLCC 全球第一）、上半年交付 40 艘；提前完成三年业绩承诺（48 亿）；接单规模刷新全球船厂纪录</li><li><span class="ev-date">2025-12-31</span> 2025 年报：营收 216.4 亿（+275%）、归母净利 26.6 亿（+1083%）——借壳后首个完整年度</li></ul>
+    </div>
+
+    <div class="footer">
+        构建时间: 2026-09-20 09:27（北京时间） · 行情/财报: 东方财富 · 运价参考: 上海航运交易所 CTFI<br>
+        <a href="index.html">← 返回跟踪列表</a>
+    </div>
+</div>
+</body>
+</html>
