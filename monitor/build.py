@@ -227,6 +227,96 @@ def fetch_em_quarterly(code):
         return None
 
 
+def fetch_report_list(code, days=180):
+    """东方财富个股研报列表（近 N 天）"""
+    end = date.today()
+    begin = end - timedelta(days=days)
+    url = (
+        "https://reportapi.eastmoney.com/report/list?industryCode=*&pageSize=50&industry=*"
+        f"&rating=&ratingChange=&beginTime={begin.isoformat()}&endTime={end.isoformat()}"
+        f"&pageNo=1&fields=&qType=0&orgCode=&code={code}&rcode=&p=1&pageNum=1"
+    )
+    try:
+        resp = requests.get(url, headers=HEADERS, timeout=20)
+        return resp.json().get("data") or []
+    except Exception as e:
+        print(f"  [!] 研报列表获取失败: {e}")
+        return []
+
+
+def fetch_em_forecast(code, quarterly=None):
+    """
+    机构盈利预测：东财一致预期 + 最新个股研报（按机构去重取最新）
+    返回: {"orgs", "year_cur", "eps_cur", "np_cur", "np_next", "h1_np", "h2_implied",
+           "tp_min", "tp_max", "shares", "reports": [{org, date, eps, title}]}
+    """
+    try:
+        url = (
+            "https://datacenter-web.eastmoney.com/api/data/v1/get"
+            "?reportName=RPT_WEB_RESPREDICT&columns=ALL"
+            f"&filter=(SECURITY_CODE%3D%22{code}%22)&pageSize=5"
+        )
+        resp = requests.get(url, headers=HEADERS, timeout=15)
+        rows = ((resp.json().get("result") or {}).get("data")) or []
+        if not rows:
+            return None
+        r = rows[0]
+    except Exception as e:
+        print(f"  [!] 盈利预测获取失败: {e}")
+        return None
+
+    year_actual = r.get("YEAR1")
+    year_cur = r.get("YEAR2")
+    eps_actual = _safe_float(r.get("EPS1"))
+    eps_cur = _safe_float(r.get("EPS2"))
+    eps_next = _safe_float(r.get("EPS3"))
+
+    # 股本 = 已披露年度净利 / 当年实际 EPS
+    shares = None
+    h1_np = None
+    if quarterly:
+        for item in quarterly.get("series", []):
+            if eps_actual and item["date"] == f"{year_actual}-12-31" and item.get("cum"):
+                shares = item["cum"] / eps_actual
+            if year_cur and item["date"] == f"{year_cur}-06-30" and item.get("cum"):
+                h1_np = item["cum"] / 1e8
+
+    np_cur = eps_cur * shares / 1e8 if (eps_cur and shares) else None
+    np_next = eps_next * shares / 1e8 if (eps_next and shares) else None
+    h2_implied = np_cur - h1_np if (np_cur is not None and h1_np is not None) else None
+
+    # 最新研报，按机构去重
+    by_org = {}
+    for row in fetch_report_list(code):
+        org = row.get("orgSName")
+        d = (row.get("publishDate") or "")[:10]
+        if not org or not d:
+            continue
+        if org not in by_org or d > by_org[org]["date"]:
+            by_org[org] = {
+                "org": org,
+                "date": d,
+                "eps": _safe_float(row.get("predictThisYearEps")),
+                "title": (row.get("title") or "")[:24],
+            }
+    reports = sorted(by_org.values(), key=lambda x: x["date"], reverse=True)[:6]
+
+    return {
+        "orgs": r.get("RATING_ORG_NUM"),
+        "year_cur": year_cur,
+        "year_next": (year_cur + 1) if isinstance(year_cur, int) else None,
+        "eps_cur": eps_cur,
+        "np_cur": np_cur,
+        "np_next": np_next,
+        "h1_np": h1_np,
+        "h2_implied": h2_implied,
+        "tp_min": _safe_float(r.get("DEC_AIMPRICEMIN")),
+        "tp_max": _safe_float(r.get("DEC_AIMPRICEMAX")),
+        "shares": shares,
+        "reports": reports,
+    }
+
+
 def fetch_sse_ctfi_ct1():
     """
     上海航运交易所 CTFI - CT1（中东湾拉斯坦努拉-中国宁波 270000MT VLCC）
@@ -377,6 +467,36 @@ def render_indicator_cell(ind, auto_data):
             )
         else:
             parts.append('<div class="sub">财报数据获取失败</div>')
+    elif auto_ref == "em_forecast":
+        if ref:
+            year = ref.get("year_cur")
+            npc, nxt = ref.get("np_cur"), ref.get("np_next")
+            cons = f"{npc:,.1f} 亿" if npc else (f'EPS {ref["eps_cur"]:.2f}' if ref.get("eps_cur") else "-")
+            parts.append(f'<div class="value">{year}E 净利共识 {cons}（{ref.get("orgs", "-")} 家机构）</div>')
+            line2 = []
+            h2, h1 = ref.get("h2_implied"), ref.get("h1_np")
+            if h2 is not None:
+                chip = pct_chip((h2 - h1) / abs(h1) * 100, ref_text="上半年") if h1 else ""
+                line2.append(f"隐含 H2（Q3+Q4）{h2:,.1f} 亿{chip}")
+                if h1 is not None:
+                    line2.append(f"H1 实际 {h1:,.1f} 亿")
+            if nxt is not None:
+                line2.append(f'{ref.get("year_next")}E {nxt:,.1f} 亿')
+            if line2:
+                parts.append(f'<div class="sub">{" · ".join(line2)}</div>')
+            if ref.get("tp_min") or ref.get("tp_max"):
+                parts.append(f'<div class="sub">机构目标价 {ref["tp_min"]} - {ref["tp_max"]}</div>')
+            rpts = ref.get("reports") or []
+            if rpts:
+                items = []
+                for x in rpts[:4]:
+                    t = f'{x["org"]} {x["date"][5:]}'
+                    if x.get("eps") and ref.get("shares"):
+                        t += f'（{x["eps"] * ref["shares"] / 1e8:,.0f}亿）'
+                    items.append(t)
+                parts.append(f'<div class="sub">最新研报: {" · ".join(items)}</div>')
+        else:
+            parts.append('<div class="sub">盈利预测获取失败</div>')
     else:
         # 事件/人工跟踪类
         status = ind.get("status")
@@ -621,10 +741,14 @@ def main():
         auto_data = {}
         print("  获取行情...")
         auto_data["em_quote"] = fetch_quote(stock["market"])
-        if any(i.get("auto_ref") == "em_quarterly" for i in stock.get("indicators", [])):
+        auto_refs = {i.get("auto_ref") for i in stock.get("indicators", [])}
+        if "em_quarterly" in auto_refs or "em_forecast" in auto_refs:
             print("  获取财报...")
             auto_data["em_quarterly"] = fetch_em_quarterly(stock["code"])
-        if any(i.get("auto_ref") == "sse_ctfi_ct1" for i in stock.get("indicators", [])):
+        if "em_forecast" in auto_refs:
+            print("  获取机构盈利预测...")
+            auto_data["em_forecast"] = fetch_em_forecast(stock["code"], quarterly=auto_data.get("em_quarterly"))
+        if "sse_ctfi_ct1" in auto_refs:
             print("  获取上海航交所 CTFI...")
             ctfi = fetch_sse_ctfi_ct1()
             auto_data["sse_ctfi_ct1"] = ctfi

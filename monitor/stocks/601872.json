@@ -102,6 +102,13 @@
       "auto_ref": "em_quarterly"
     },
     {
+      "type": "预测",
+      "name": "机构盈利预测（2026E · 隐含 Q3/Q4）",
+      "why": "卖方一致预期与最新研报修正；隐含 H2 = 2026E − H1 实际（覆盖 Q3+Q4）",
+      "freq": "quarterly",
+      "auto_ref": "em_forecast"
+    },
+    {
       "type": "公司",
       "name": "安通控股董事会改组与控制权交割",
       "why": "第二增长曲线兑现",
