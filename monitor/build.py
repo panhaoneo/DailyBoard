@@ -24,6 +24,7 @@ from zoneinfo import ZoneInfo
 import requests
 
 import pigcycle
+import cards
 from pigcycle import delta_chip, pct_chip
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -517,7 +518,75 @@ def render_indicator_cell(ind, auto_data):
     return "\n".join(parts)
 
 
-def render_stock_page(stock, auto_data):
+STATUS_CLS = {"逻辑强化中": "ok", "待验证": "wait", "已证伪": "bad"}
+
+
+def render_card_header(card):
+    """跟踪卡头部：状态灯 + 加入日期 + 门槛 + 加入理由"""
+    status = card.get("status") or "未设置"
+    cls = STATUS_CLS.get(status, "na")
+    gates_html = "".join(f'<span class="gate">{esc(g)}</span>' for g in card.get("gates", [])) or "未记录"
+    html = (
+        f'<div class="subtitle card-meta">状态 <span class="light {cls}"></span><strong>{esc(status)}</strong>'
+        f' · 加入 {esc(card.get("added") or "-")} · 门槛: {gates_html}</div>'
+    )
+    if card.get("reason"):
+        html += f'<div class="subtitle">加入理由: {esc(card["reason"])}</div>'
+    return html
+
+
+def render_card_sections(card):
+    """跟踪卡正文区块：五问 / 证伪 / 指标字典（不含事件流与复盘，见页面模板）"""
+    html = ""
+    if card.get("five_q"):
+        items = ""
+        for q in card["five_q"]:
+            upd = f' <span class="ev-date">{esc(q["updated"])}</span>' if q.get("updated") else ""
+            body = "<br>".join(esc(b) for b in q.get("body") if b) or '<span class="sub">（待补）</span>'
+            items += f'<li><strong>{esc(q["title"])}</strong>{upd}<div class="qa">{body}</div></li>'
+        html += f'<div class="section"><h2>逻辑穿透五问</h2><ul class="notes qa-list">{items}</ul></div>'
+    if card.get("falsify"):
+        items = ""
+        for f in card["falsify"]:
+            cls = ' class="tripped"' if f["triggered"] else ""
+            box = "☑" if f["triggered"] else "☐"
+            items += f'<li{cls}><span class="fbox">{box}</span>{esc(f["text"])}</li>'
+        html += f'<div class="section"><h2>证伪条件</h2><ul class="notes falsify">{items}</ul></div>'
+    if card.get("metrics"):
+        rows = "".join(
+            f'<tr><td>{esc(m["metric"])}</td><td>{esc(m["source"])}</td><td>{esc(m["freq"])}</td>'
+            f'<td>{esc(m["latest"])}</td><td class="hist">{esc(m["history"])}</td></tr>'
+            for m in card["metrics"]
+        )
+        html += (
+            '<div class="section"><h2>指标字典</h2>'
+            '<table class="fin-table metric-table"><thead>'
+            '<tr><th>指标</th><th>数据源</th><th>频率</th><th>最新值</th><th>历史值</th></tr></thead>'
+            f'<tbody>{rows}</tbody></table></div>'
+        )
+    return html
+
+
+def render_card_tail(card, code):
+    """跟踪卡尾部区块：复盘三问 + 交易纪律"""
+    html = ""
+    if card.get("reviews"):
+        items = ""
+        for r in sorted(card["reviews"], key=lambda x: x["date"], reverse=True):
+            items += (
+                f'<li><span class="ev-date">{esc(r["date"])}</span>'
+                f'<div class="qa"><strong>理由成立？</strong>{esc(r["q1"] or "—")}</div>'
+                f'<div class="qa"><strong>逻辑强化？</strong>{esc(r["q2"] or "—")}</div>'
+                f'<div class="qa"><strong>阶段？</strong>{esc(r["q3"] or "—")}</div></li>'
+            )
+        html += f'<div class="section"><h2>复盘三问</h2><ul class="notes reviews">{items}</ul></div>'
+    if card.get("discipline"):
+        items = "".join(f"<li>{esc(it)}</li>" for it in card["discipline"])
+        html += f'<div class="section"><h2>交易纪律</h2><ul class="notes">{items}</ul></div>'
+    return html
+
+
+def render_stock_page(stock, auto_data, card=None):
     code = stock["code"]
     name = stock["name"]
     quote = auto_data.get("em_quote")
@@ -529,6 +598,17 @@ def render_stock_page(stock, auto_data):
         cls = "up" if pct > 0 else "down" if pct < 0 else "flat"
         arrow = "▲" if pct > 0 else "▼" if pct < 0 else "—"
         quote_html = f'<span class="quote-price">{quote["price"]}</span> <span class="chip {cls}">{arrow} {pct:+.2f}%</span>'
+
+    if card is not None:
+        card_header_html = render_card_header(card)
+        card_body_html = render_card_sections(card)
+        card_tail_html = render_card_tail(card, code)
+        event_title = "事件流"
+    else:
+        card_header_html = '<div class="subtitle">跟踪卡待建（参考 monitor/cards/_模板.md 创建 cards/{0}.md）</div>'.format(code)
+        card_body_html = ""
+        card_tail_html = ""
+        event_title = "事件记录"
 
     ind_rows = ""
     for ind in stock.get("indicators", []):
@@ -577,15 +657,26 @@ def render_stock_page(stock, auto_data):
         </table>
     </div>"""
 
-    events = stock.get("events", [])
-    if events:
-        ev_items = "".join(
-            f'<li><span class="ev-date">{e.get("date", "")}</span> {e.get("text", "")}</li>'
-            for e in sorted(events, key=lambda x: x.get("date", ""), reverse=True)
-        )
-        events_html = f'<ul class="events">{ev_items}</ul>'
+    if card is not None:
+        if card.get("events"):
+            ev_items = "".join(
+                f'<li><span class="ev-date">{e["date"]}</span>'
+                f'<span class="ev-type">{esc(e["type"])}</span>{esc(e["text"])}</li>'
+                for e in sorted(card["events"], key=lambda x: x["date"], reverse=True)
+            )
+            events_html = f'<ul class="events">{ev_items}</ul>'
+        else:
+            events_html = f'<p class="sub">暂无事件（在 monitor/cards/{code}.md 的「## 事件流」顶部加一行）</p>'
     else:
-        events_html = '<p class="sub">暂无事件记录（可在 stocks/{0}.json 的 events 中追加）</p>'.format(code)
+        events = stock.get("events", [])
+        if events:
+            ev_items = "".join(
+                f'<li><span class="ev-date">{e.get("date", "")}</span> {esc(e.get("text", ""))}</li>'
+                for e in sorted(events, key=lambda x: x.get("date", ""), reverse=True)
+            )
+            events_html = f'<ul class="events">{ev_items}</ul>'
+        else:
+            events_html = '<p class="sub">暂无事件记录（可在 stocks/{0}.json 的 events 中追加）</p>'.format(code)
 
     return f"""<!DOCTYPE html>
 <html lang="zh-CN">
@@ -630,6 +721,22 @@ td.data .sub {{ color: var(--muted); font-size: 12px; margin-top: 2px; }}
 .notes li {{ padding: 7px 0 7px 16px; border-bottom: 1px dashed var(--border); position: relative; font-size: 13.5px; }}
 .notes li::before {{ content: "▸"; position: absolute; left: 0; color: #2980b9; }}
 .footer {{ text-align: center; color: var(--muted); font-size: 12px; padding: 18px; }}
+.light {{ display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin: 0 6px 0 2px; vertical-align: middle; }}
+.light.ok {{ background: #00994d; }}
+.light.wait {{ background: #e67e22; }}
+.light.bad {{ background: #d63031; }}
+.light.na {{ background: #bbb; }}
+.gate {{ display: inline-block; background: #eef5ff; color: #2980b9; border-radius: 10px; padding: 0 9px; font-size: 12px; margin-right: 5px; }}
+.card-meta {{ margin-top: 8px; }}
+.qa {{ color: #555; font-size: 13.5px; margin-top: 3px; }}
+.qa-list li {{ padding-bottom: 10px; }}
+.falsify li.tripped {{ background: #fdeceb; border-radius: 6px; }}
+.falsify li.tripped .fbox {{ color: #d63031; }}
+.fbox {{ margin-right: 6px; }}
+.ev-type {{ background: #f0f2f5; border-radius: 9px; padding: 0 8px; font-size: 12px; color: #555; margin-right: 7px; }}
+.metric-table td {{ text-align: left; }}
+.metric-table td.hist {{ color: var(--muted); font-size: 12.5px; }}
+.reviews li {{ padding: 9px 0 9px 16px; }}
 a {{ color: #2980b9; text-decoration: none; }}
 a:hover {{ text-decoration: underline; }}
 </style>
@@ -641,7 +748,10 @@ a:hover {{ text-decoration: underline; }}
         <div class="meta">{quote_html}</div>
         <div class="subtitle">{stock.get("summary", "")}</div>
         <div class="subtitle">{stock.get("sensitivity_note", "")}</div>
+        {card_header_html}
     </div>
+
+    {card_body_html}
 
     <div class="section">
         <h2>指标与事件跟踪</h2>
@@ -659,9 +769,11 @@ a:hover {{ text-decoration: underline; }}
     {fin_section}
 
     <div class="section">
-        <h2>事件记录</h2>
+        <h2>{event_title}</h2>
         {events_html}
     </div>
+
+    {card_tail_html}
 
     <div class="footer">
         构建时间: {build_time}（北京时间） · 行情/财报: 东方财富 · 运价参考: 上海航运交易所 CTFI<br>
@@ -672,12 +784,13 @@ a:hover {{ text-decoration: underline; }}
 </html>"""
 
 
-def render_index(stocks, themes=None):
+def render_index(stocks, themes=None, cards_by_code=None):
     build_time = now_bj().strftime("%Y-%m-%d %H:%M")
+    cards_by_code = cards_by_code or {}
 
-    cards = ""
+    cards_html = ""
     for theme in (themes or []):
-        cards += f"""
+        cards_html += f"""
         <a class="card theme" href="{theme["id"]}.html">
             <h2>{theme["title"]}</h2>
             <p>{theme.get("summary", "")}</p>
@@ -687,11 +800,28 @@ def render_index(stocks, themes=None):
     for stock in stocks:
         ind_count = len(stock.get("indicators", []))
         auto_count = sum(1 for i in stock.get("indicators", []) if i.get("auto_ref"))
-        cards += f"""
-        <a class="card" href="{stock["code"]}.html">
-            <h2>{stock["name"]} <span class="code">{stock["code"]}</span></h2>
+        card = cards_by_code.get(stock["code"])
+        status_html = '<span class="light na"></span>未建卡'
+        alert_html = ""
+        recent_html = ""
+        card_cls = ""
+        if card:
+            st = card.get("status") or "未设置"
+            cls = STATUS_CLS.get(st, "na")
+            status_html = f'<span class="light {cls}"></span>{esc(st)}'
+            tripped = sum(1 for f in card.get("falsify", []) if f.get("triggered"))
+            if tripped:
+                alert_html = f' <span class="alert">⚠ 证伪已触发 {tripped} 条</span>'
+                card_cls = " alerted"
+            if card.get("events"):
+                e = max(card["events"], key=lambda x: x["date"])
+                recent_html = f'<p class="recent"><span class="ev-date">{esc(e["date"])}</span>{esc(e["text"])}</p>'
+        cards_html += f"""
+        <a class="card{card_cls}" href="{stock["code"]}.html">
+            <h2>{stock["name"]} <span class="code">{stock["code"]}</span><span class="status">{status_html}</span></h2>
             <p>{stock.get("summary", "")}</p>
-            <p class="meta">跟踪 {ind_count} 项指标/事件 · {auto_count} 项自动抓取</p>
+            {recent_html}
+            <p class="meta">跟踪 {ind_count} 项指标/事件 · {auto_count} 项自动抓取{alert_html}</p>
         </a>"""
 
     return f"""<!DOCTYPE html>
@@ -713,6 +843,16 @@ h1 {{ font-size: 26px; color: #1a1a2e; margin-bottom: 6px; }}
 .card .code {{ font-size: 13px; color: #888; font-weight: 400; }}
 .card p {{ color: #666; font-size: 13.5px; }}
 .card .meta {{ color: #999; font-size: 12.5px; margin-top: 6px; }}
+.card .status {{ font-size: 13px; font-weight: 600; color: #555; margin-left: 8px; }}
+.card.alerted {{ border: 2px solid #d63031; }}
+.alert {{ color: #d63031; font-weight: 700; }}
+.recent {{ color: #666; font-size: 12.5px; margin-top: 6px; }}
+.recent .ev-date {{ color: #999; margin-right: 8px; }}
+.light {{ display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin: 0 6px 0 2px; vertical-align: middle; }}
+.light.ok {{ background: #00994d; }}
+.light.wait {{ background: #e67e22; }}
+.light.bad {{ background: #d63031; }}
+.light.na {{ background: #bbb; }}
 .footer {{ text-align: center; color: #999; font-size: 12px; padding: 20px; }}
 </style>
 </head>
@@ -720,7 +860,7 @@ h1 {{ font-size: 26px; color: #1a1a2e; margin-bottom: 6px; }}
 <div class="container">
     <h1>数据跟踪</h1>
     <p class="desc">个股关键指标与事件 + 行业周期主题跟踪 · 更新节奏由指标频率决定 · 构建: {build_time}（北京时间）</p>
-    {cards}
+    {cards_html}
     <div class="footer">数据来源: 东方财富、上海航运交易所、玄田数据（中国养猪网）、新浪财经、新猪派（免费公开数据）</div>
 </div>
 </body>
@@ -733,10 +873,17 @@ def main():
     state = load_state()
 
     stocks = []
+    cards_by_code = {}
     for path in stock_files:
         with open(path, encoding="utf-8") as f:
             stock = json.load(f)
         print(f"[跟踪] {stock['name']}（{stock['code']}）")
+
+        card, card_warnings = cards.load_card(stock["code"])
+        if card_warnings:
+            for w in card_warnings:
+                print(f"  [!] 跟踪卡: {w}")
+        cards_by_code[stock["code"]] = card
 
         auto_data = {}
         print("  获取行情...")
@@ -754,7 +901,7 @@ def main():
             auto_data["sse_ctfi_ct1"] = ctfi
             auto_data["sse_ctfi_ct1_prev"] = record_ctfi_history(state, stock["code"], ctfi)
 
-        html = render_stock_page(stock, auto_data)
+        html = render_stock_page(stock, auto_data, card)
         out_path = os.path.join(DOCS_DIR, f"{stock['code']}.html")
         with open(out_path, "w", encoding="utf-8") as f:
             f.write(html)
@@ -770,7 +917,7 @@ def main():
         print(f"[主题] {cfg['title']}")
         themes.append(pigcycle.build_pig_cycle(cfg, DOCS_DIR))
 
-    index_html = render_index(stocks, themes)
+    index_html = render_index(stocks, themes, cards_by_code)
     with open(os.path.join(DOCS_DIR, "index.html"), "w", encoding="utf-8") as f:
         f.write(index_html)
     print(f"已生成 {os.path.join(DOCS_DIR, 'index.html')}")
