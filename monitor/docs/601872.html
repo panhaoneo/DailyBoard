@@ -41,6 +41,22 @@ td.data .sub { color: var(--muted); font-size: 12px; margin-top: 2px; }
 .notes li { padding: 7px 0 7px 16px; border-bottom: 1px dashed var(--border); position: relative; font-size: 13.5px; }
 .notes li::before { content: "▸"; position: absolute; left: 0; color: #2980b9; }
 .footer { text-align: center; color: var(--muted); font-size: 12px; padding: 18px; }
+.light { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin: 0 6px 0 2px; vertical-align: middle; }
+.light.ok { background: #00994d; }
+.light.wait { background: #e67e22; }
+.light.bad { background: #d63031; }
+.light.na { background: #bbb; }
+.gate { display: inline-block; background: #eef5ff; color: #2980b9; border-radius: 10px; padding: 0 9px; font-size: 12px; margin-right: 5px; }
+.card-meta { margin-top: 8px; }
+.qa { color: #555; font-size: 13.5px; margin-top: 3px; }
+.qa-list li { padding-bottom: 10px; }
+.falsify li.tripped { background: #fdeceb; border-radius: 6px; }
+.falsify li.tripped .fbox { color: #d63031; }
+.fbox { margin-right: 6px; }
+.ev-type { background: #f0f2f5; border-radius: 9px; padding: 0 8px; font-size: 12px; color: #555; margin-right: 7px; }
+.metric-table td { text-align: left; }
+.metric-table td.hist { color: var(--muted); font-size: 12.5px; }
+.reviews li { padding: 9px 0 9px 16px; }
 a { color: #2980b9; text-decoration: none; }
 a:hover { text-decoration: underline; }
 </style>
@@ -49,10 +65,13 @@ a:hover { text-decoration: underline; }
 <div class="container">
     <div class="header">
         <h1>招商轮船 <span style="font-size:0.6em;opacity:0.7">601872</span></h1>
-        <div class="meta"><span class="quote-price">22.07</span> <span class="chip up">▲ +0.18%</span></div>
+        <div class="meta"><span class="quote-price">20.0</span> <span class="chip down">▼ -9.38%</span></div>
         <div class="subtitle">油运超级周期进行时：全球海运货量 -9%，但吨海里结构性抬升（大西洋替代＋曼德绕行）且合规有效运力稀缺。产业定价看期租（13-15 万美元/天、船东惜租）与资产市场（二手 VLCC 2 亿美元级成交）。公司为油运+干散货+集运综合平台，油运利润对 VLCC TCE 高度敏感</div>
         <div class="subtitle">VLCC TCE 每 1 万美元/天 ≈ 12.11 亿元/年 · 一年期期租 13-15 万美元/天 ≈ 年化 4740-5480 万美元/船</div>
+        <div class="subtitle">跟踪卡待建（参考 monitor/cards/_模板.md 创建 cards/601872.md）</div>
     </div>
+
+    
 
     <div class="section">
         <h2>指标与事件跟踪</h2>
@@ -68,7 +87,7 @@ a:hover { text-decoration: underline; }
                 <td>daily</td>
                 <td class="threshold">跌破 10 万美元/天（2026 年“量塌地板”）= 市场转松信号</td>
                 <td class="scenario">乐观 → 中性/悲观</td>
-                <td class="data"><div class="value">1,416,338 美元/天<span class="chip up" title="较 2026-10-08">▲ +33,044 美元/天（+2.39%）</span></div><div class="sub">参考（上海航交所 CT1 标准航速 TCE）<br>WS 1317.07<span class="chip up" title="较 2026-10-08">▲ +29</span> · 266.18 美元/吨 · 2026-10-09</div></td>
+                <td class="data"><div class="value">1,416,338 美元/天<span class="chip up" title="较 2026-09-21">▲ +188,451 美元/天（+15.35%）</span></div><div class="sub">参考（上海航交所 CT1 标准航速 TCE）<br>WS 1317.07<span class="chip up" title="较 2026-09-21">▲ +170</span> · 266.18 美元/吨 · 2026-10-09</div></td>
             </tr>
             <tr>
                 <td class="type">中枢</td>
@@ -219,11 +238,13 @@ a:hover { text-decoration: underline; }
 
     <div class="section">
         <h2>事件记录</h2>
-        <ul class="events"><li><span class="ev-date">2026-09-05</span> 二手 VLCC 爆出 2 亿美元成交；一年期期租租家报价推至 15 万美元/天，船东普遍惜租</li><li><span class="ev-date">2026-08</span> 美军对伊朗影子船队实施军事封锁，伊朗最后的“泄压阀”关闭；P&I 与再保撤出红海/曼德覆盖</li><li><span class="ev-date">2026-07-20</span> 胡塞武装宣布对沙特海上封锁、曼德海峡实质瘫痪；延布货改绕好望角（往返 48→115 天，吸收约 150 艘 VLCC）</li><li><span class="ev-date">2026-07 初</span> 霍尔木兹海峡再度实质性关闭（IEA 口径）</li><li><span class="ev-date">2026-06-17</span> 《伊斯兰堡备忘录》签署、海峡短暂重开；TD34 一周拉涨超 100 点至 WS280，后随通航预期回落</li><li><span class="ev-date">2026-03~05</span> 海峡关闭期 TD3C 一度 WS400+ 有价无市；TD34 自 WS180 跌至 5 月底 WS128，出现东西运费倒挂</li><li><span class="ev-date">2026-02-28</span> 美伊军事冲突爆发，霍尔木兹海峡实质关闭（部分口径记 3/2 正式关闭）</li></ul>
+        <ul class="events"><li><span class="ev-date">2026-09-05</span> 二手 VLCC 爆出 2 亿美元成交；一年期期租租家报价推至 15 万美元/天，船东普遍惜租</li><li><span class="ev-date">2026-08</span> 美军对伊朗影子船队实施军事封锁，伊朗最后的“泄压阀”关闭；P&amp;I 与再保撤出红海/曼德覆盖</li><li><span class="ev-date">2026-07-20</span> 胡塞武装宣布对沙特海上封锁、曼德海峡实质瘫痪；延布货改绕好望角（往返 48→115 天，吸收约 150 艘 VLCC）</li><li><span class="ev-date">2026-07 初</span> 霍尔木兹海峡再度实质性关闭（IEA 口径）</li><li><span class="ev-date">2026-06-17</span> 《伊斯兰堡备忘录》签署、海峡短暂重开；TD34 一周拉涨超 100 点至 WS280，后随通航预期回落</li><li><span class="ev-date">2026-03~05</span> 海峡关闭期 TD3C 一度 WS400+ 有价无市；TD34 自 WS180 跌至 5 月底 WS128，出现东西运费倒挂</li><li><span class="ev-date">2026-02-28</span> 美伊军事冲突爆发，霍尔木兹海峡实质关闭（部分口径记 3/2 正式关闭）</li></ul>
     </div>
 
+    
+
     <div class="footer">
-        构建时间: 2026-10-11 15:58（北京时间） · 行情/财报: 东方财富 · 运价参考: 上海航运交易所 CTFI<br>
+        构建时间: 2026-10-12 15:37（北京时间） · 行情/财报: 东方财富 · 运价参考: 上海航运交易所 CTFI<br>
         <a href="index.html">← 返回跟踪列表</a>
     </div>
 </div>
