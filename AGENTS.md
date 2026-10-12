@@ -1,6 +1,6 @@
 # DailyBoard
 
-> 最后更新: 2026-09-23 | 当前分支: main（与 origin/main 同步）| 当前阶段: 四个模块全部上线、CI 全自动运行；日常只需维护 monitor 的人工填报字段
+> 最后更新: 2026-10-12 | 当前分支: main（与 origin/main 同步）| 当前阶段: 四个模块全部上线、CI 全自动运行；日常只需维护 monitor 的人工填报字段
 
 ## 是什么
 
@@ -23,6 +23,7 @@
 - `new-things/` — 极简：`build.py` 把 `content/*.md` 转成 `docs/`
 - `monitor/` — 最活跃模块
   - `build.py` 入口。加载 `stocks/*.json` 渲染个股页；内置抓取器：东财行情、东财业绩报表 `fetch_em_quarterly`（单季营收/净利/毛利率）、机构盈利预测 `fetch_em_forecast`（东财一致预期 RPT_WEB_RESPREDICT + 研报列表 reportapi、按机构去重）、上交所 CTFI `fetch_sse_ctfi_ct1`
+  - `cards.py` + `cards/{code}.md` — 跟踪卡系统（2026-10 新增）：每只股票一张人工跟踪卡（front matter 状态三态/加入日期/理由/四门槛 + 逻辑穿透五问 + 证伪清单 + 指标字典 + 事件流 + 复盘三问 + 交易纪律），纯标准库解析，渲染进个股页与总览页（状态灯/最近事件/证伪警示）；**有卡片的股票事件流以卡片为准**（JSON `events` 已迁移至卡片）。格式规范见 `cards/DESIGN.md`，模板 `cards/_模板.md`，日常操作见 `每日维护手册.md`
   - `pigcycle.py`：猪周期主题页（玄田数据、新浪期货、新猪派抓取 + 手写 SVG 图表 + 拐点信号评估）；含"数据源不可用则保留上一版页面"守卫 `_xt_available`
   - `stocks/601872.json` 招商轮船、`603259.json` 药明康德、`603268.json` 松发股份（恒力重工）
   - `themes/pig_cycle.json` 猪周期主题
@@ -80,6 +81,7 @@
 8. **保持 Python 3.10 兼容**: 别用嵌套同引号 f-string（3.12 语法）等新特性——本机 3.10.4 会直接语法报错。
 9. **问财 key 缺失时的降级**: market report 的"创历史新高"会自动回退 THS/AKShare 源，页面不空但口径略不同；iwencai skillhub CLI 曾因命名空间冲突需要用 `touch ~/.iwencai-skillhub/cli/__init__.py` 修复。
 10. **玄田接口口径**: `getzhujiahitsdata` 仅支持 ptype 1-5（日频价格）；`getmapdata` 的生猪产能止于 2025-10（陈旧），所以能繁母猪季度值改走新猪派 lab 页文本解析；新浪期货行情需带 Referer 头。
+11. **GitHub 调度器不按时派发定时任务**（2026-09-24 实测 `gh run list --json createdAt`，覆盖 09-02~09-24）：所有 schedule 运行无一次准点，延迟中位数 monitor ≈4.9h、market report ≈4.9h、xwlb ≈3.1h，且会漂移（09-02~09-04 约 50 分钟 → 09-05/09-06 约 24h → 09-10 起 2~4h）。run 的 `createdAt` 即 `startedAt`（排队 0 分钟），任务本身很快（monitor 55s、xwlb ~20s、market report 1h11m~1h41m），故延迟全在 GitHub 侧，与本仓代码无关；同期运行全部 success。**影响**：页面实际发布比 cron 晚数小时（monitor 实际约北京 15:00，非 10:00），但数据在"执行时刻"抓取、仍晚于数据源更新时点，内容不缺。排查时不要当故障，改 cron 也无法根治。
 
 ## 进行中的工作
 
@@ -101,3 +103,5 @@
 ## 变更记录
 
 - 2026-09-23: 初版。覆盖 4 模块结构、4 个 workflow 调度、secrets 路径、10 条历史坑、迁移清单与会话恢复路径。
+- 2026-09-24: 新增已知坑 11（GitHub 调度器实测：定时任务延迟 3~5 小时派发、任务本身很快、运行全 success，页面实际发布时间较 cron 整体后移）。
+- 2026-10-12: monitor 新增跟踪卡系统（cards.py + cards/{code}.md）：状态三态/四门槛/五问/证伪/指标字典/事件流/复盘三问/交易纪律，松发 603268 已建样例卡并迁移原 JSON 事件；总览页加状态灯/最近事件/证伪警示。
