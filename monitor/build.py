@@ -17,6 +17,7 @@ import os
 import re
 import json
 import glob
+from collections import Counter
 from datetime import datetime, date, timedelta
 from html import escape as esc
 from zoneinfo import ZoneInfo
@@ -25,7 +26,7 @@ import requests
 
 import pigcycle
 import cards
-from pigcycle import delta_chip, pct_chip
+from pigcycle import delta_chip, pct_chip, svg_line
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 STOCKS_DIR = os.path.join(ROOT, "stocks")
@@ -586,6 +587,120 @@ def render_card_tail(card, code):
     return html
 
 
+# ============================================================
+# 跟踪卡可视化：新船价格指数 / 订单逐笔 / 产能布局
+# ============================================================
+
+def svg_hbar(items, width=640, label="艘"):
+    """横向条形图：items = [(名称, 数量, 颜色)]"""
+    if not items:
+        return ""
+    maxv = max(c for _, c, _ in items) or 1
+    row_h = 30
+    height = len(items) * row_h + 4
+    bx, bw = 92, width - 92 - 64
+    parts = [f'<svg viewBox="0 0 {width} {height}" width="100%" role="img">']
+    for i, (name, cnt, color) in enumerate(items):
+        y = i * row_h + 17
+        w = max(4, bw * cnt / maxv)
+        parts.append(f'<text x="0" y="{y}" font-size="12" fill="#555">{esc(name)}</text>')
+        parts.append(f'<rect x="{bx}" y="{y - 11}" width="{w:.0f}" height="16" rx="3" fill="{color}"/>')
+        parts.append(f'<text x="{bx + w + 6:.0f}" y="{y}" font-size="12" font-weight="600" fill="#555">{cnt} {label}</text>')
+    parts.append("</svg>")
+    return "".join(parts)
+
+
+def render_phase_blocks(phases, notes):
+    """产能分期：CSS 色块时间轴"""
+    cls_map = {"投产": "ok", "在建": "wip"}
+    blocks = ""
+    for p in phases:
+        cls = cls_map.get(p["status"], "na")
+        blocks += (
+            f'<div class="phase {cls}">'
+            f'<div class="phase-head">{esc(p["phase"])} · {esc(p["name"])}</div>'
+            f'<div class="phase-status">{esc(p["status"])}</div>'
+            f'<div class="phase-detail">{esc(p["detail"])}</div>'
+            f'<div class="phase-time">{esc(p["time"] or "—")}</div>'
+            f'</div>'
+        )
+    notes_html = "".join(f"<li>{esc(n)}</li>" for n in (notes or []))
+    return (
+        f'<div class="phase-row">{blocks}</div>'
+        + (f'<ul class="notes">{notes_html}</ul>' if notes_html else "")
+    )
+
+
+BUCKET_COLORS = {
+    "VLCC": "#2980b9", "VLAC": "#16a085", "LNG": "#8e44ad",
+    "VLGC": "#e67e22", "集装箱": "#d35400", "散货": "#7f8c8d",
+}
+
+
+def render_card_visuals(card):
+    """跟踪卡图形化区块：新船价格指数折线 / 订单分层条形 / 产能分期"""
+    html = ""
+
+    if card.get("price_index"):
+        pts = [(r["date"], r["value"]) for r in card["price_index"]]
+        chart = svg_line(
+            [{"name": "克拉克森新船价格指数", "color": "#2980b9", "points": pts}],
+            fmt="{:.1f}",
+        )
+        rows = "".join(
+            f'<tr><td>{esc(r["date"])}</td><td>{r["value"]}</td>'
+            f'<td class="hist">{esc(r["source"])}</td></tr>'
+            for r in sorted(card["price_index"], key=lambda x: x["date"], reverse=True)
+        )
+        html += (
+            '<div class="section"><h2>新船价格指数（克拉克森）</h2>'
+            f'{chart}'
+            '<table class="fin-table metric-table"><thead>'
+            '<tr><th>日期</th><th>指数</th><th>来源</th></tr></thead>'
+            f'<tbody>{rows}</tbody></table></div>'
+        )
+
+    if card.get("orders"):
+        backlog = [
+            o for o in card["orders"]
+            if not (o.get("status") or "").startswith(("交付", "出坞"))
+        ]
+        buckets = Counter()
+        for o in backlog:
+            buckets[cards.ship_bucket(o["ship_type"])] += o.get("count") or 0
+        items = sorted(buckets.items(), key=lambda kv: -kv[1])
+        bar = svg_hbar(
+            [(k, v, BUCKET_COLORS.get(k, "#95a5a6")) for k, v in items]
+        )
+        note = (
+            f'<p class="sub">按已录入订单统计（签约/生效 {sum(v for _, v in items)} 艘；'
+            f'交付与在谈未计入）；逐笔明细需持续从 imarine.cn/order 与公告补充</p>'
+        )
+        rows = "".join(
+            f'<tr><td>{esc(o["date"])}</td><td>{esc(o["client"])}</td>'
+            f'<td>{esc(o["ship_type"])}</td><td>{o["count"] if o["count"] is not None else "—"}</td>'
+            f'<td>{esc(o["price"])}</td><td>{esc(o["delivery"])}</td>'
+            f'<td>{esc(o["status"])}</td></tr>'
+            for o in sorted(card["orders"], key=lambda x: x["date"], reverse=True)
+        )
+        html += (
+            '<div class="section"><h2>订单逐笔（船型分层）</h2>'
+            f'{bar}{note}'
+            '<table class="fin-table metric-table"><thead>'
+            '<tr><th>日期</th><th>客户</th><th>船型</th><th>艘数</th>'
+            '<th>金额/单价</th><th>交付期</th><th>状态</th></tr></thead>'
+            f'<tbody>{rows}</tbody></table></div>'
+        )
+
+    if card.get("capacity"):
+        html += (
+            '<div class="section"><h2>产能布局（一期 → 四期）</h2>'
+            f'{render_phase_blocks(card["capacity"], card.get("capacity_notes"))}'
+            '</div>'
+        )
+    return html
+
+
 def render_stock_page(stock, auto_data, card=None):
     code = stock["code"]
     name = stock["name"]
@@ -602,11 +717,13 @@ def render_stock_page(stock, auto_data, card=None):
     if card is not None:
         card_header_html = render_card_header(card)
         card_body_html = render_card_sections(card)
+        card_visual_html = render_card_visuals(card)
         card_tail_html = render_card_tail(card, code)
         event_title = "事件流"
     else:
         card_header_html = '<div class="subtitle">跟踪卡待建（参考 monitor/cards/_模板.md 创建 cards/{0}.md）</div>'.format(code)
         card_body_html = ""
+        card_visual_html = ""
         card_tail_html = ""
         event_title = "事件记录"
 
@@ -737,6 +854,17 @@ td.data .sub {{ color: var(--muted); font-size: 12px; margin-top: 2px; }}
 .metric-table td {{ text-align: left; }}
 .metric-table td.hist {{ color: var(--muted); font-size: 12.5px; }}
 .reviews li {{ padding: 9px 0 9px 16px; }}
+.phase-row {{ display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; }}
+.phase {{ flex: 1 1 200px; border-radius: 10px; padding: 12px 14px; border: 1px solid var(--border); border-top: 4px solid #bbb; background: #fff; }}
+.phase.ok {{ border-top-color: #00994d; }}
+.phase.wip {{ border-top-color: #e67e22; }}
+.phase.na {{ border-top-color: #bbb; }}
+.phase-head {{ font-weight: 600; font-size: 13.5px; color: var(--accent); }}
+.phase-status {{ display: inline-block; font-size: 12px; border-radius: 9px; padding: 0 8px; margin: 4px 0; background: #f0f2f5; color: #555; }}
+.phase.ok .phase-status {{ background: #e6f7ee; color: #00994d; }}
+.phase.wip .phase-status {{ background: #fdf0e2; color: #e67e22; }}
+.phase-detail {{ font-size: 12.5px; color: #666; }}
+.phase-time {{ font-size: 12px; color: var(--muted); margin-top: 4px; }}
 a {{ color: #2980b9; text-decoration: none; }}
 a:hover {{ text-decoration: underline; }}
 </style>
@@ -752,6 +880,8 @@ a:hover {{ text-decoration: underline; }}
     </div>
 
     {card_body_html}
+
+    {card_visual_html}
 
     <div class="section">
         <h2>指标与事件跟踪</h2>

@@ -82,6 +82,20 @@ def parse_checklist(lines):
 
 def parse_table(lines):
     """解析指标字典表：指标|数据源|频率|最新值|历史值。"""
+    return [
+        {
+            "metric": cells[0],
+            "source": cells[1],
+            "freq": cells[2],
+            "latest": cells[3],
+            "history": cells[4],
+        }
+        for cells in parse_table_rows(lines) if len(cells) >= 5
+    ]
+
+
+def parse_table_rows(lines):
+    """通用表格解析：返回单元格列表的列表（跳过表头与分隔行）。"""
     rows = []
     header_seen = False
     for ln in lines:
@@ -92,16 +106,68 @@ def parse_table(lines):
             header_seen = True
             continue
         cells = [c.strip() for c in s[1:-1].split("|")]
-        if not header_seen or len(cells) < 5:
+        if not header_seen or len(cells) < 2:
             continue
-        rows.append({
-            "metric": cells[0],
-            "source": cells[1],
-            "freq": cells[2],
-            "latest": cells[3],
-            "history": cells[4],
-        })
+        rows.append(cells)
     return rows
+
+
+def _num(s):
+    try:
+        return float(s)
+    except (ValueError, TypeError):
+        return None
+
+
+def map_price(rows):
+    out = []
+    for r in rows:
+        v = _num(r[1] if len(r) > 1 else "")
+        if v is None:
+            continue
+        out.append({"date": r[0], "value": v, "source": r[2] if len(r) > 2 else ""})
+    out.sort(key=lambda x: x["date"])
+    return out
+
+
+def map_orders(rows):
+    out = []
+    for r in rows:
+        if len(r) < 3:
+            continue
+        m = re.match(r"(\d+)", r[3] if len(r) > 3 else "")
+        out.append({
+            "date": r[0],
+            "client": r[1],
+            "ship_type": r[2],
+            "count": int(m.group(1)) if m else None,
+            "price": r[4] if len(r) > 4 else "",
+            "delivery": r[5] if len(r) > 5 else "",
+            "status": r[6] if len(r) > 6 else "",
+        })
+    return out
+
+
+def map_capacity(rows):
+    out = []
+    for r in rows:
+        if len(r) < 3:
+            continue
+        out.append({
+            "phase": r[0],
+            "name": r[1],
+            "status": r[2],
+            "detail": r[3] if len(r) > 3 else "",
+            "time": r[4] if len(r) > 4 else "",
+        })
+    return out
+
+
+def ship_bucket(t):
+    for key in ("VLCC", "VLAC", "LNG", "VLGC", "集装箱", "散货"):
+        if key in t:
+            return key
+    return "未披露/其他"
 
 
 def parse_events(lines):
@@ -182,6 +248,10 @@ def load_card(code):
         "events": [],
         "reviews": [],
         "discipline": [],
+        "price_index": [],
+        "orders": [],
+        "capacity": [],
+        "capacity_notes": [],
     }
     for title, sec_lines in _split_sections(body):
         if "五问" in title:
@@ -196,6 +266,16 @@ def load_card(code):
             card["reviews"] = parse_reviews(sec_lines)
         elif "交易纪律" in title:
             card["discipline"] = [ln.strip() for ln in sec_lines if ln.strip()]
+        elif "价格指数" in title:
+            card["price_index"] = map_price(parse_table_rows(sec_lines))
+        elif "订单逐笔" in title:
+            card["orders"] = map_orders(parse_table_rows(sec_lines))
+        elif "产能" in title:
+            card["capacity"] = map_capacity(parse_table_rows(sec_lines))
+            card["capacity_notes"] = [
+                ln.lstrip("- ").strip() for ln in sec_lines
+                if ln.strip().startswith("-") and not ln.strip().startswith("|")
+            ]
         else:
             warnings.append(f"忽略未知区块: {title}")
     return card, (warnings or None)

@@ -57,6 +57,17 @@ td.data .sub { color: var(--muted); font-size: 12px; margin-top: 2px; }
 .metric-table td { text-align: left; }
 .metric-table td.hist { color: var(--muted); font-size: 12.5px; }
 .reviews li { padding: 9px 0 9px 16px; }
+.phase-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; }
+.phase { flex: 1 1 200px; border-radius: 10px; padding: 12px 14px; border: 1px solid var(--border); border-top: 4px solid #bbb; background: #fff; }
+.phase.ok { border-top-color: #00994d; }
+.phase.wip { border-top-color: #e67e22; }
+.phase.na { border-top-color: #bbb; }
+.phase-head { font-weight: 600; font-size: 13.5px; color: var(--accent); }
+.phase-status { display: inline-block; font-size: 12px; border-radius: 9px; padding: 0 8px; margin: 4px 0; background: #f0f2f5; color: #555; }
+.phase.ok .phase-status { background: #e6f7ee; color: #00994d; }
+.phase.wip .phase-status { background: #fdf0e2; color: #e67e22; }
+.phase-detail { font-size: 12.5px; color: #666; }
+.phase-time { font-size: 12px; color: var(--muted); margin-top: 4px; }
 a { color: #2980b9; text-decoration: none; }
 a:hover { text-decoration: underline; }
 </style>
@@ -65,11 +76,13 @@ a:hover { text-decoration: underline; }
 <div class="container">
     <div class="header">
         <h1>药明康德 <span style="font-size:0.6em;opacity:0.7">603259</span></h1>
-        <div class="meta"><span class="quote-price">157.85</span> <span class="chip up">▲ +0.03%</span></div>
+        <div class="meta"><span class="quote-price">153.6</span> <span class="chip down">▼ -2.69%</span></div>
         <div class="subtitle">全球 CRDMO 龙头（小分子 D&M + TIDES 多肽/寡核苷酸双引擎）；在手订单为核心前瞻指标，美国政策/地缘与网络安全为主要外生变量</div>
         <div class="subtitle">在手订单 664.3 亿元（2026H1，+25.2%）确立未来 2-3 个季度收入中枢；TIDES 收入 +44.3% 为第二增长引擎</div>
         <div class="subtitle">跟踪卡待建（参考 monitor/cards/_模板.md 创建 cards/603259.md）</div>
     </div>
+
+    
 
     
 
@@ -223,7 +236,7 @@ a:hover { text-decoration: underline; }
     
 
     <div class="footer">
-        构建时间: 2026-10-12 16:13（北京时间） · 行情/财报: 东方财富 · 运价参考: 上海航运交易所 CTFI<br>
+        构建时间: 2026-10-13 09:48（北京时间） · 行情/财报: 东方财富 · 运价参考: 上海航运交易所 CTFI<br>
         <a href="index.html">← 返回跟踪列表</a>
     </div>
 </div>
