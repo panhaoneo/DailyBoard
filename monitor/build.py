@@ -638,51 +638,6 @@ BUCKET_COLORS = {
 }
 
 
-def load_news(code):
-    """读取 data/{code}_news.json（由 fetch_news.py 抓取），无则返回 None"""
-    path = os.path.join(ROOT, "data", f"{code}_news.json")
-    if not os.path.exists(path):
-        return None
-    try:
-        with open(path, encoding="utf-8") as f:
-            return json.load(f)
-    except Exception as e:
-        print(f"  [!] 新闻数据读取失败: {e}")
-        return None
-
-
-def render_news_section(news, latest_n=20):
-    """订单新闻动态：概览 + 月度分布条形图 + 最新 N 条列表（imarine 站内搜索）"""
-    items = (news or {}).get("items") or []
-    if not items:
-        return ""
-    keyword = news.get("keyword", "")
-    fetched_at = news.get("fetched_at", "-")
-    order_cnt = sum(1 for x in items if x.get("cat") == "船厂订单")
-    months = Counter((x.get("date") or "")[:7] for x in items if x.get("date"))
-    bar = svg_hbar(
-        [(m, c, "#2980b9") for m, c in sorted(months.items())],
-        label="条",
-    )
-    latest = sorted(items, key=lambda x: x.get("date") or "", reverse=True)[:latest_n]
-    lis = "".join(
-        f'<li><span class="ev-date">{esc(x.get("date", ""))}</span>'
-        f'<span class="ev-type">{esc(x.get("cat", ""))}</span>'
-        f'<a href="{esc(x.get("link", ""))}" target="_blank" rel="noopener">{esc(x.get("title", ""))}</a></li>'
-        for x in latest
-    )
-    return (
-        f'<div class="section"><h2>订单新闻动态（imarine 搜索「{esc(keyword)}」）</h2>'
-        f'<p class="sub">共 {len(items)} 条（其中「船厂订单」分类 {order_cnt} 条）'
-        f' · 抓取于 {esc(fetched_at)} · 每日由 CI 自动更新，下方为最新 {min(latest_n, len(items))} 条</p>'
-        f'{bar}'
-        f'<ul class="events">{lis}</ul>'
-        f'<p class="sub">完整列表见 monitor/data/{esc(news.get("code", ""))}_news.json；'
-        f'来源：<a href="https://www.imarine.cn/?s={keyword}" target="_blank" rel="noopener">imarine.cn 搜索页</a></p>'
-        '</div>'
-    )
-
-
 def render_card_visuals(card):
     """跟踪卡图形化区块：新船价格指数折线 / 订单分层条形 / 产能分期"""
     html = ""
@@ -733,8 +688,8 @@ def render_card_visuals(card):
         rows = "".join(
             f'<tr><td>{esc(o["date"])}</td><td>{esc(o["client"] or "—")}</td>'
             f'<td>{esc(o["ship_type"])}</td><td>{esc(o["count_raw"])}</td>'
-            f'<td>{esc(o["spec"] or "—")}</td><td>{esc(o["delivery"] or "—")}</td>'
-            f'<td>{esc(o["status"] or "—")}</td></tr>'
+            f'<td>{esc(o["spec"] or "—")}</td><td>{esc(o["price"] or "—")}</td>'
+            f'<td>{esc(o["delivery"] or "—")}</td><td>{esc(o["status"] or "—")}</td></tr>'
             for o in sorted(card["orders"], key=lambda x: x["date"], reverse=True)
         )
         html += (
@@ -742,9 +697,32 @@ def render_card_visuals(card):
             f'{bar}{note}'
             '<table class="fin-table metric-table"><thead>'
             '<tr><th>日期</th><th>船东</th><th>船型</th><th>艘数</th>'
-            '<th>规格</th><th>交付期</th><th>状态</th></tr></thead>'
+            '<th>规格</th><th>金额/单价</th><th>交付期</th><th>状态</th></tr></thead>'
             f'<tbody>{rows}</tbody></table></div>'
         )
+
+        # 交付节奏（按交付期均摊到各年，仅统计已提取到交付期的订单）
+        year_bucket = {}
+        covered = 0
+        for o in backlog:
+            yrs = sorted(set(int(y) for y in re.findall(r"20(?:2[6-9]|3[0-2])", o.get("delivery") or "")))
+            if not yrs or not o.get("count"):
+                continue
+            covered += 1
+            share = round(o["count"] / len(yrs), 1)
+            for y in yrs:
+                year_bucket[y] = round(year_bucket.get(y, 0) + share, 1)
+        if year_bucket:
+            items_y = [(f"{y} 年", v, "#16a085") for y, v in sorted(year_bucket.items())]
+            bar_y = svg_hbar(items_y)
+            html += (
+                '<div class="section"><h2>交付节奏（按年，近似）</h2>'
+                f'{bar_y}'
+                f'<p class="sub">交付期来自订单相关新闻提取，覆盖 {covered}/{len(backlog)} 笔订单（'
+                f'{sum(o["count"] for o in backlog)} 艘中已覆盖 '
+                f'{round(sum(year_bucket.values()))} 艘·按区间均摊）；未提取到交付期的订单待补充</p>'
+                '</div>'
+            )
 
     if card.get("capacity"):
         html += (
@@ -780,9 +758,6 @@ def render_stock_page(stock, auto_data, card=None):
         card_visual_html = ""
         card_tail_html = ""
         event_title = "事件记录"
-
-    news_data = load_news(code)
-    news_html = render_news_section(news_data) if news_data else ""
 
     ind_rows = ""
     for ind in stock.get("indicators", []):
@@ -939,8 +914,6 @@ a:hover {{ text-decoration: underline; }}
     {card_body_html}
 
     {card_visual_html}
-
-    {news_html}
 
     <div class="section">
         <h2>指标与事件跟踪</h2>

@@ -144,8 +144,9 @@ def map_orders(rows):
             "count": int(m.group(1)) if m else None,
             "count_raw": raw or "—",
             "spec": r[4] if len(r) > 4 else "",
-            "delivery": r[5] if len(r) > 5 else "",
-            "status": r[6] if len(r) > 6 else "",
+            "price": r[5] if len(r) > 5 else "",
+            "delivery": r[6] if len(r) > 6 else "",
+            "status": r[7] if len(r) > 7 else "",
         })
     return out
 

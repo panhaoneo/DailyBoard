@@ -32,7 +32,7 @@ jobs:
       - name: Fetch imarine news feed (603268)
         continue-on-error: true
         working-directory: monitor
-        run: python fetch_news.py --code 603268 --keyword 恒力重工
+        run: python fetch_news.py --code 603268 --keyword 恒力重工 --with-text
 
       - name: Build monitor pages
         working-directory: monitor
