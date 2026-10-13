@@ -634,7 +634,53 @@ def render_phase_blocks(phases, notes):
 BUCKET_COLORS = {
     "VLCC": "#2980b9", "VLAC": "#16a085", "LNG": "#8e44ad",
     "VLGC": "#e67e22", "集装箱": "#d35400", "散货": "#7f8c8d",
+    "油轮": "#c0392b",
 }
+
+
+def load_news(code):
+    """读取 data/{code}_news.json（由 fetch_news.py 抓取），无则返回 None"""
+    path = os.path.join(ROOT, "data", f"{code}_news.json")
+    if not os.path.exists(path):
+        return None
+    try:
+        with open(path, encoding="utf-8") as f:
+            return json.load(f)
+    except Exception as e:
+        print(f"  [!] 新闻数据读取失败: {e}")
+        return None
+
+
+def render_news_section(news, latest_n=20):
+    """订单新闻动态：概览 + 月度分布条形图 + 最新 N 条列表（imarine 站内搜索）"""
+    items = (news or {}).get("items") or []
+    if not items:
+        return ""
+    keyword = news.get("keyword", "")
+    fetched_at = news.get("fetched_at", "-")
+    order_cnt = sum(1 for x in items if x.get("cat") == "船厂订单")
+    months = Counter((x.get("date") or "")[:7] for x in items if x.get("date"))
+    bar = svg_hbar(
+        [(m, c, "#2980b9") for m, c in sorted(months.items())],
+        label="条",
+    )
+    latest = sorted(items, key=lambda x: x.get("date") or "", reverse=True)[:latest_n]
+    lis = "".join(
+        f'<li><span class="ev-date">{esc(x.get("date", ""))}</span>'
+        f'<span class="ev-type">{esc(x.get("cat", ""))}</span>'
+        f'<a href="{esc(x.get("link", ""))}" target="_blank" rel="noopener">{esc(x.get("title", ""))}</a></li>'
+        for x in latest
+    )
+    return (
+        f'<div class="section"><h2>订单新闻动态（imarine 搜索「{esc(keyword)}」）</h2>'
+        f'<p class="sub">共 {len(items)} 条（其中「船厂订单」分类 {order_cnt} 条）'
+        f' · 抓取于 {esc(fetched_at)} · 每日由 CI 自动更新，下方为最新 {min(latest_n, len(items))} 条</p>'
+        f'{bar}'
+        f'<ul class="events">{lis}</ul>'
+        f'<p class="sub">完整列表见 monitor/data/{esc(news.get("code", ""))}_news.json；'
+        f'来源：<a href="https://www.imarine.cn/?s={keyword}" target="_blank" rel="noopener">imarine.cn 搜索页</a></p>'
+        '</div>'
+    )
 
 
 def render_card_visuals(card):
@@ -673,22 +719,22 @@ def render_card_visuals(card):
             [(k, v, BUCKET_COLORS.get(k, "#95a5a6")) for k, v in items]
         )
         note = (
-            f'<p class="sub">按已录入订单统计（签约/生效 {sum(v for _, v in items)} 艘；'
-            f'交付与在谈未计入）；逐笔明细需持续从 imarine.cn/order 与公告补充</p>'
+            f'<p class="sub">按已录入订单统计（签约/生效合计 {sum(v for _, v in items)} 艘，'
+            f'含选择权按首批计）；数据来源：龙船订单库 imarine.cn/order（2026 年导出）</p>'
         )
         rows = "".join(
-            f'<tr><td>{esc(o["date"])}</td><td>{esc(o["client"])}</td>'
-            f'<td>{esc(o["ship_type"])}</td><td>{o["count"] if o["count"] is not None else "—"}</td>'
-            f'<td>{esc(o["price"])}</td><td>{esc(o["delivery"])}</td>'
-            f'<td>{esc(o["status"])}</td></tr>'
+            f'<tr><td>{esc(o["date"])}</td><td>{esc(o["client"] or "—")}</td>'
+            f'<td>{esc(o["ship_type"])}</td><td>{esc(o["count_raw"])}</td>'
+            f'<td>{esc(o["spec"] or "—")}</td><td>{esc(o["delivery"] or "—")}</td>'
+            f'<td>{esc(o["status"] or "—")}</td></tr>'
             for o in sorted(card["orders"], key=lambda x: x["date"], reverse=True)
         )
         html += (
             '<div class="section"><h2>订单逐笔（船型分层）</h2>'
             f'{bar}{note}'
             '<table class="fin-table metric-table"><thead>'
-            '<tr><th>日期</th><th>客户</th><th>船型</th><th>艘数</th>'
-            '<th>金额/单价</th><th>交付期</th><th>状态</th></tr></thead>'
+            '<tr><th>日期</th><th>船东</th><th>船型</th><th>艘数</th>'
+            '<th>规格</th><th>交付期</th><th>状态</th></tr></thead>'
             f'<tbody>{rows}</tbody></table></div>'
         )
 
@@ -726,6 +772,9 @@ def render_stock_page(stock, auto_data, card=None):
         card_visual_html = ""
         card_tail_html = ""
         event_title = "事件记录"
+
+    news_data = load_news(code)
+    news_html = render_news_section(news_data) if news_data else ""
 
     ind_rows = ""
     for ind in stock.get("indicators", []):
@@ -882,6 +931,8 @@ a:hover {{ text-decoration: underline; }}
     {card_body_html}
 
     {card_visual_html}
+
+    {news_html}
 
     <div class="section">
         <h2>指标与事件跟踪</h2>

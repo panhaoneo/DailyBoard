@@ -135,13 +135,15 @@ def map_orders(rows):
     for r in rows:
         if len(r) < 3:
             continue
-        m = re.match(r"(\d+)", r[3] if len(r) > 3 else "")
+        raw = r[3] if len(r) > 3 else ""
+        m = re.match(r"(\d+)", raw)
         out.append({
             "date": r[0],
             "client": r[1],
             "ship_type": r[2],
             "count": int(m.group(1)) if m else None,
-            "price": r[4] if len(r) > 4 else "",
+            "count_raw": raw or "—",
+            "spec": r[4] if len(r) > 4 else "",
             "delivery": r[5] if len(r) > 5 else "",
             "status": r[6] if len(r) > 6 else "",
         })
@@ -164,7 +166,7 @@ def map_capacity(rows):
 
 
 def ship_bucket(t):
-    for key in ("VLCC", "VLAC", "LNG", "VLGC", "集装箱", "散货"):
+    for key in ("VLCC", "VLAC", "LNG", "VLGC", "集装箱", "散货", "油轮"):
         if key in t:
             return key
     return "未披露/其他"

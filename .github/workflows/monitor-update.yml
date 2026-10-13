@@ -29,6 +29,11 @@ jobs:
       - working-directory: monitor
         run: pip install -r requirements.txt
 
+      - name: Fetch imarine news feed (603268)
+        continue-on-error: true
+        working-directory: monitor
+        run: python fetch_news.py --code 603268 --keyword 恒力重工
+
       - name: Build monitor pages
         working-directory: monitor
         run: python build.py
@@ -37,7 +42,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add monitor/docs/ monitor/state/
+          git add monitor/docs/ monitor/state/ monitor/data/
           if git diff --cached --quiet; then
             echo "No changes to commit"
           else
