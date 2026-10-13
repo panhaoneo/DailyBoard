@@ -718,9 +718,17 @@ def render_card_visuals(card):
         bar = svg_hbar(
             [(k, v, BUCKET_COLORS.get(k, "#95a5a6")) for k, v in items]
         )
+        firm_total = sum(v for _, v in items)
+        opt_total = sum(
+            int(m.group(1))
+            for o in backlog
+            for m in [re.match(r"\d+\+(\d+)", o.get("count_raw") or "")]
+            if m
+        )
+        opt_txt = f"，另含选择权 +{opt_total} 艘（不计入）" if opt_total else ""
         note = (
-            f'<p class="sub">按已录入订单统计（签约/生效合计 {sum(v for _, v in items)} 艘，'
-            f'含选择权按首批计）；数据来源：龙船订单库 imarine.cn/order（2026 年导出）</p>'
+            f'<p class="sub">统计口径：仅计确认艘数（选择权不计入）——合计 {firm_total} 艘{opt_txt}；'
+            f'数据来源：龙船订单库 imarine.cn/order（2026 年导出）</p>'
         )
         rows = "".join(
             f'<tr><td>{esc(o["date"])}</td><td>{esc(o["client"] or "—")}</td>'
