@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A股市场日报 - 2026-10-30</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                         "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: #f0f2f5; color: #333; line-height: 1.6; padding: 20px;
+        }
+        .container { max-width: 1100px; margin: 0 auto; }
+        .header {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            color: white; padding: 30px 40px; border-radius: 12px; margin-bottom: 24px;
+        }
+        .header h1 { font-size: 28px; margin-bottom: 8px; }
+        .header .subtitle { font-size: 14px; opacity: 0.8; }
+        .section {
+            background: white; border-radius: 12px; padding: 24px 30px;
+            margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        .section h2 {
+            font-size: 20px; color: #1a1a2e; margin-bottom: 16px;
+            padding-bottom: 10px; border-bottom: 2px solid #eef2f7;
+        }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        th, td { padding: 10px 14px; text-align: center; border-bottom: 1px solid #eef2f7; }
+        th { background: #f8f9fb; color: #555; font-weight: 600; font-size: 13px; }
+        tr:hover { background: #fafbfc; }
+        .up { color: #e74c3c; font-weight: bold; }
+        .down { color: #27ae60; font-weight: bold; }
+        .flat { color: #999; }
+        .stat-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px; margin-bottom: 10px;
+        }
+        .stat-card {
+            background: #f8f9fb; border-radius: 8px; padding: 16px; text-align: center;
+        }
+        .stat-card .label { font-size: 13px; color: #888; margin-bottom: 6px; }
+        .stat-card .value { font-size: 24px; font-weight: bold; }
+        .sentiment-bar {
+            height: 8px; border-radius: 4px; background: #eee;
+            margin: 12px 0; overflow: hidden;
+        }
+        .sentiment-fill { height: 100%; border-radius: 4px; }
+        .footer { text-align: center; padding: 20px; color: #999; font-size: 12px; }
+        .tag {
+            display: inline-block; padding: 4px 12px; border-radius: 20px;
+            font-size: 13px; font-weight: 600; color: white;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>A股市场日报</h1>
+        <div class="subtitle">
+            日期: 2026-10-30 | 更新: 23:43:09 | 数据源: 东方财富/腾讯/问财
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>市场数据总览</h2>
+        <table>
+            <thead>
+                <tr><th style="text-align:left">名称</th><th>今年</th><th>本月</th><th>当天</th></tr>
+            </thead>
+            <tbody><tr><td style="text-align:left">A股总数量</td><td>5220%</td><td>5217%</td><td>5574</td></tr><tr><td style="text-align:left">A股上涨数量</td><td>1450%</td><td>630%</td><td>892</td></tr><tr><td style="text-align:left">A股下跌数量</td><td>3747%</td><td>4581%</td><td>4602</td></tr><tr><td style="text-align:left">A股零涨幅数量</td><td>23%</td><td>6%</td><td>80</td></tr><tr><td style="text-align:left">涨幅>10%</td><td>631</td><td>162</td><td>40</td></tr><tr><td style="text-align:left">涨幅>5%到10%</td><td>319</td><td>169</td><td>83</td></tr><tr><td style="text-align:left">涨幅>0%到5%</td><td>500</td><td>299</td><td>769</td></tr><tr><td style="text-align:left">涨幅>-5%到0%</td><td>864</td><td>554</td><td>3127</td></tr><tr><td style="text-align:left">涨幅>-10%到-5%</td><td>944</td><td>834</td><td>1351</td></tr><tr><td style="text-align:left">涨幅小于-10%</td><td>1939</td><td>3193</td><td>124</td></tr><tr><td style="text-align:left">A股上涨比例</td><td>27.78%</td><td>12.08%</td><td>16.0%</td></tr><tr><td style="text-align:left">A股下跌比例</td><td>71.78%</td><td>87.81%</td><td>82.56%</td></tr><tr><td style="text-align:left">A股算术平均涨幅</td><td>-4.89%</td><td>-12.58%</td><td class="down">-3.03%</td></tr><tr><td style="text-align:left">A股涨幅中位数</td><td>-6.47%</td><td>-12.8%</td><td class="down">-3.13%</td></tr>
+                    <tr>
+                        <td style="text-align:left;font-weight:600">上证指数</td>
+                        <td class="down">-9.32%</td>
+                        <td class="down">-6.33%</td>
+                        <td class="down">-1.44%</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:left;font-weight:600">上证50</td>
+                        <td class="down">-9.53%</td>
+                        <td class="down">-2.88%</td>
+                        <td class="down">-0.75%</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:left;font-weight:600">沪深300</td>
+                        <td class="down">-13.92%</td>
+                        <td class="down">-8.54%</td>
+                        <td class="down">-1.39%</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:left;font-weight:600">中证500</td>
+                        <td class="down">-16.07%</td>
+                        <td class="down">-15.72%</td>
+                        <td class="down">-2.91%</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:left;font-weight:600">中证1000</td>
+                        <td class="down">-18.88%</td>
+                        <td class="down">-15.59%</td>
+                        <td class="down">-3.41%</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:left;font-weight:600">科创50</td>
+                        <td class="down">-13.64%</td>
+                        <td class="down">-24.13%</td>
+                        <td class="down">-5.48%</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:left;font-weight:600">深证成指</td>
+                        <td class="down">-19.9%</td>
+                        <td class="down">-15.94%</td>
+                        <td class="down">-2.73%</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:left;font-weight:600">创业板指</td>
+                        <td class="down">-24.65%</td>
+                        <td class="down">-23.02%</td>
+                        <td class="down">-4.13%</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:left;font-weight:600">中证全指</td>
+                        <td class="flat">0.0%</td>
+                        <td class="flat">0.0%</td>
+                        <td class="down">-4.06%</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:left;font-weight:600">国证2000</td>
+                        <td class="down">-17.92%</td>
+                        <td class="down">-15.3%</td>
+                        <td class="down">-3.34%</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:left;font-weight:600">创业板50</td>
+                        <td class="down">-28.09%</td>
+                        <td class="down">-24.77%</td>
+                        <td class="down">-4.46%</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:left;font-weight:600">中证2000</td>
+                        <td class="down">-18.88%</td>
+                        <td class="down">-15.59%</td>
+                        <td class="down">-3.41%</td>
+                    </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="section">
+        <h2>创新高股票（沪交所+深交所，排除北交所）</h2>
+        <div class="stat-grid">
+            <div class="stat-card">
+                <div class="label">创年内新高（当日）</div>
+                <div class="value up">28只</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">其中利润增长</div>
+                <div class="value up">2只</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">创历史新高</div>
+                <div class="value up">8只</div>
+            </div>
+        </div>
+
+        <h3 style="font-size:16px;color:#333;margin:20px 0 10px">📈 创年内新高</h3>
+        
+            <table>
+                <thead><tr><th style="text-align:left">代码</th><th style="text-align:left">名称</th><th>所属行业</th><th style='text-align:center'>利润增长</th></tr></thead>
+                <tbody>
+                    <tr>
+                        <td style="text-align:left">600351</td>
+                        <td style="text-align:left">亚宝药业</td>
+                        <td>中药Ⅱ</td>
+                        <td style='text-align:center'></td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:left">001219</td>
+                        <td style="text-align:left">青岛食品</td>
+                        <td>休闲食品</td>
+                        <td style='text-align:center'></td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:left">603939</td>
+                        <td style="text-align:left">益丰药房</td>
+                        <td>医药商业</td>
+                        <td style='text-align:center'></td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:left">300949</td>
+                        <td style="text-align:left">奥雅股份</td>
+                        <td>基础建设</td>
+                        <td style='text-align:center'>✓</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:left">002293</td>
+                        <td style="text-align:left">罗莱生活</td>
+                        <td>服装家纺</td>
+                        <td style='text-align:center'></td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:left">601857</td>
+                        <td style="text-align:left">中国石油</td>
+                        <td>炼化及贸易</td>
+                        <td style='text-align:center'></td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:left">601088</td>
+                        <td style="text-align:left">中国神华</td>
+                        <td>煤炭开采</td>
+                        <td style='text-align:center'></td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:left">002724</td>
+                        <td style="text-align:left">海洋王</td>
+                        <td>照明设备Ⅱ</td>
+                        <td style='text-align:center'></td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:left">600261</td>
+                        <td style="text-align:left">阳光照明</td>
+                        <td>照明设备Ⅱ</td>
+                        <td style='text-align:center'></td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:left">600323</td>
+                        <td style="text-align:left">瀚蓝环境</td>
+                        <td>环境治理</td>
+                        <td style='text-align:center'></td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:left">000333</td>
+                        <td style="text-align:left">美的集团</td>
+                        <td>白色家电</td>
+                        <td style='text-align:center'></td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:left">603198</td>
+                        <td style="text-align:left">迎驾贡酒</td>
+                        <td>白酒Ⅱ</td>
+                        <td style='text-align:center'></td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:left">002003</td>
+                        <td style="text-align:left">伟星股份</td>
+                        <td>纺织制造</td>
+                        <td style='text-align:center'></td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:left">600018</td>
+                        <td style="text-align:left">上港集团</td>
+                        <td>航运港口</td>
+                        <td style='text-align:center'></td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:left">601083</td>
+                        <td style="text-align:left">锦江航运</td>
+                        <td>航运港口</td>
+                        <td style='text-align:center'></td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:left">601919</td>
+                        <td style="text-align:left">中远海控</td>
+                        <td>航运港口</td>
+                        <td style='text-align:center'></td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:left">601728</td>
+                        <td style="text-align:left">中国电信</td>
+                        <td>通信服务</td>
+                        <td style='text-align:center'></td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:left">002164</td>
+                        <td style="text-align:left">宁波东力</td>
+                        <td>通用设备</td>
+                        <td style='text-align:center'>✓</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:left">603278</td>
+                        <td style="text-align:left">大业股份</td>
+                        <td>通用设备</td>
+                        <td style='text-align:center'></td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:left">002807</td>
+                        <td style="text-align:left">江阴银行</td>
+                        <td>银行Ⅱ</td>
+                        <td style='text-align:center'></td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:left">002966</td>
+                        <td style="text-align:left">苏州银行</td>
+                        <td>银行Ⅱ</td>
+                        <td style='text-align:center'></td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:left">600036</td>
+                        <td style="text-align:left">招商银行</td>
+                        <td>银行Ⅱ</td>
+                        <td style='text-align:center'></td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:left">600919</td>
+                        <td style="text-align:left">江苏银行</td>
+                        <td>银行Ⅱ</td>
+                        <td style='text-align:center'></td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:left">601328</td>
+                        <td style="text-align:left">交通银行</td>
+                        <td>银行Ⅱ</td>
+                        <td style='text-align:center'></td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:left">601577</td>
+                        <td style="text-align:left">长沙银行</td>
+                        <td>银行Ⅱ</td>
+                        <td style='text-align:center'></td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:left">601838</td>
+                        <td style="text-align:left">成都银行</td>
+                        <td>银行Ⅱ</td>
+                        <td style='text-align:center'></td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:left">601998</td>
+                        <td style="text-align:left">中信银行</td>
+                        <td>银行Ⅱ</td>
+                        <td style='text-align:center'></td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:left">600887</td>
+                        <td style="text-align:left">伊利股份</td>
+                        <td>饮料乳品</td>
+                        <td style='text-align:center'></td>
+                    </tr>
+                </tbody>
+            </table>
+        
+        <div style="margin-top:16px;padding:16px;background:#f8f9fb;border-radius:8px">
+            <h4 style="font-size:14px;color:#333;margin-bottom:10px">当日创新高板块分布（做多行业）</h4>
+            <ul style="list-style:none;padding:0;margin:0"><li><strong>银行Ⅱ</strong> (8只): 江阴银行, 苏州银行, 招商银行, 江苏银行, 交通银行, 长沙银行, 成都银行, 中信银行</li><li><strong>航运港口</strong> (3只): 上港集团, 锦江航运, 中远海控</li><li><strong>照明设备Ⅱ</strong> (2只): 海洋王, 阳光照明</li><li><strong>通用设备</strong> (2只): 宁波东力, 大业股份</li><li><strong>中药Ⅱ</strong> (1只): 亚宝药业</li><li><strong>休闲食品</strong> (1只): 青岛食品</li><li><strong>医药商业</strong> (1只): 益丰药房</li><li><strong>基础建设</strong> (1只): 奥雅股份</li><li><strong>服装家纺</strong> (1只): 罗莱生活</li><li><strong>炼化及贸易</strong> (1只): 中国石油</li><li><strong>煤炭开采</strong> (1只): 中国神华</li><li><strong>环境治理</strong> (1只): 瀚蓝环境</li><li><strong>白色家电</strong> (1只): 美的集团</li><li><strong>白酒Ⅱ</strong> (1只): 迎驾贡酒</li><li><strong>纺织制造</strong> (1只): 伟星股份</li><li><strong>通信服务</strong> (1只): 中国电信</li><li><strong>饮料乳品</strong> (1只): 伊利股份</li></ul>
+        </div>
+
+        <h3 style="font-size:16px;color:#333;margin:20px 0 10px">🏆 创历史新高</h3>
+        
+            <table>
+                <thead><tr><th style="text-align:left">代码</th><th style="text-align:left">名称</th><th>所属行业</th><th style='text-align:center'>利润增长</th></tr></thead>
+                <tbody>
+                    <tr>
+                        <td style="text-align:left">001219</td>
+                        <td style="text-align:left">青岛食品</td>
+                        <td>休闲食品</td>
+                        <td style='text-align:center'></td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:left">000678</td>
+                        <td style="text-align:left">襄阳轴承</td>
+                        <td>汽车零部件</td>
+                        <td style='text-align:center'></td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:left">301529</td>
+                        <td style="text-align:left">福赛科技</td>
+                        <td>汽车零部件</td>
+                        <td style='text-align:center'></td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:left">601298</td>
+                        <td style="text-align:left">青岛港</td>
+                        <td>航运港口</td>
+                        <td style='text-align:center'></td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:left">600919</td>
+                        <td style="text-align:left">江苏银行</td>
+                        <td>银行Ⅱ</td>
+                        <td style='text-align:center'></td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:left">601398</td>
+                        <td style="text-align:left">工商银行</td>
+                        <td>银行Ⅱ</td>
+                        <td style='text-align:center'></td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:left">601939</td>
+                        <td style="text-align:left">建设银行</td>
+                        <td>银行Ⅱ</td>
+                        <td style='text-align:center'></td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:left">601998</td>
+                        <td style="text-align:left">中信银行</td>
+                        <td>银行Ⅱ</td>
+                        <td style='text-align:center'></td>
+                    </tr>
+                </tbody>
+            </table>
+    </div>
+
+    <div class="section">
+        <h2>市场情绪总结</h2>
+        <div style="padding:10px 0">
+            <p><strong>市场情绪:</strong> <span class="tag" style="background:#2c3e50">弱势下跌</span></p>
+            <p style="margin-top:10px"><strong>两市总成交额:</strong> 16874.33亿</p>
+            <p><strong>上涨比例:</strong> 16.0%</p>
+            <p><strong>平均涨幅:</strong> <span class="down">-3.03%</span></p>
+            <p><strong>中位数涨幅:</strong> <span class="down">-3.13%</span></p>
+        </div>
+    </div>
+
+    <div class="footer">
+        报告生成时间: 2026-10-30 23:43:09<br>
+        数据来源: 东方财富、腾讯财经、同花顺问财（免费公开数据）<br>
+        创历史新高数据来源于同花顺问财
+    </div>
+</div>
+</body>
+</html>
